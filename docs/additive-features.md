@@ -861,3 +861,22 @@ Remove when: Pi implements equivalent same-tool download sharing, or PiG no long
 Approval: the owner explicitly classifies this capability as additive robustness in the fix-download-dedup lane.
 SCRUTINIZED:approved
 
+---
+
+## D89 Approved let-go source realization (not yet implemented)
+
+Stock disposition: inert capability. This record approves an implementation boundary, not a claim that Stock PiG currently discovers or runs `.lg` sources. Stock PiG must not activate a let-go extension unless the user selects it through an existing extension source path.
+
+What: a trusted exact `.lg` file or a directory with `extension.lg` may become a factory-style source interpreted inside PiG. Registration must use `coding/extension.API`, produce the existing `extension.Extension`, and dispatch through `coding/extension/host/inproc.Runner`. Canonical source resolution, trust, provenance, conflict handling, validation, and staged reload remain shared with other extension sources. Each reload creates a fresh generation; retained callbacks outlive any runner invocation that may still use them. The runtime host owns let-go process-global interactions and serializes VM entry where required by the pinned interpreter. In-process code can crash, exhaust resources, or block the process; pure CPU-bound execution is not promised hard preemption. It is not a security sandbox.
+
+The approved first subset is tools, commands, `session_start`, `session_shutdown`, `before_agent_start`, `agent_start`, `agent_end`, `agent_settled`, `tool_call`, `tool_result`, native context reads, simple UI notifications/dialogs, and supported dynamic tool registration. The adapter must declare unsupported capabilities explicitly and must not weaken other SDKs' interfaces or conformance. Public Clojure namespaces are `pig.extension` and `pig.context`; no `pig.internal.*` Clojure namespace is defined in v1. Private Go adapter plumbing is not an author-facing privileged API. No general embedded interpreter/plugin ABI, WASM/JS runtime, dynamic Go plugin, compiled let-go Piglet Binary, nREPL, privileged `pig.host`, or PiG Standard activation is approved. The Go language floor remains 1.26 until a separate concrete decision.
+
+Input: owner chose option A on `PiG-18s.1`; the conservative no-`pig.internal.*` implementation choice is recorded there. This is additive source support, not permission to diverge from observable Pi extension behavior. Completion evidence, production decision-point markers, source/test paths, and resource measurements must be added when implementation lands; none are claimed by this record.
+
+Evidence: `PiG-18s.1` records the owner scope approval and its explicit implementation boundary; there is no runtime test evidence yet.
+
+Remove when: let-go source support is withdrawn or the general extension source policy supersedes this narrow exception.
+
+PORT_MAP path: n/a.
+SCRUTINIZED:approved
+

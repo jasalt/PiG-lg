@@ -58,6 +58,10 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 <!-- END BEADS INTEGRATION -->
 
 
+## Project extension policy
+
+Read `AGENTS.md` and `coding/extension/AGENTS.md` for current rules. Existing SDKs remain subprocess-only. The owner-approved D89 exception permits only a narrowly scoped, trusted in-process let-go source realization through the native extension API and runner; it does not authorize a general in-process loader, `plugin.Open`, or privileged scripting. V1 defines no `pig.internal.*` Clojure namespace. The scope approval does not claim that the runtime has been implemented.
+
 ## Build & Test
 
 _Add your build and test commands here_

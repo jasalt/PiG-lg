@@ -12,8 +12,8 @@ The unported declarations of upstream 0.99.2's extension API are named by `test/
 
 Pig is a Go-native port of upstream pi. Upstream pi has exactly **one**
 SDK (TypeScript) and loads extensions **in-process**. Pig deliberately
-rejects in-process production extensions (no embedded JS runtime, no WASM,
-no dynamic Go plugins). Two downstream-only constructs exist so that we
+rejects general in-process production extension loaders (no embedded JS runtime, no WASM,
+no dynamic Go plugins). D89 approves one narrowly scoped, trusted interpreted let-go source realization using the existing native extension API and runner; it is not implemented by this policy record, not a fifth subprocess SDK, and not a general in-process loader. Two downstream-only constructs exist so that we
 can still expose the upstream extension API faithfully:
 
 - **Multi-language SDKs** (`extensions/sdk`, `extensions/sdk-rs`,

@@ -7,6 +7,7 @@ Operating rules for AI agents maintaining `pig`, the Go port of upstream `pi`. T
 `pig` must match upstream `pi` observable behavior unless `docs/parity/DIVERGENCES.md` records a numbered, scrutinized exception. Treat the port as a compiler from upstream TypeScript behavior to Go behavior: `docs/parity/PORT_MAP.md` defines the file map, parity scenarios define behavior, `test/parity/coverage.md` reports proof, and gates keep the claims honest.
 
 Source of truth:
+
 - `.upstream/current/` is the upstream mirror.
 - `internal/coding/pigversion/pigversion.go` pins the upstream version (re-exported by `coding/upstream.go` as `coding.UpstreamVersion`).
 - `docs/parity/PORT_MAP.md` maps upstream files to Go files, deferred entries, or designed-out entries.
@@ -72,8 +73,7 @@ best-effort, while explicit update failures remain actionable.
 ## Extension API porting rules
 
 The pig extension system is a **port** of the upstream pi extension API,
-not a replacement for it. Two downstream-only constructs exist so we can
-stay subprocess-only without giving up the pi extension API:
+not a replacement for it. Two downstream-only constructs exist so we can stay subprocess-only for the existing Go, Rust, Python, and Node extension SDKs without giving up the pi extension API. A narrowly scoped, trusted let-go interpreter is approved as a separate in-process source realization (D89); it is not a new SDK or a general in-process plugin loader:
 
 - **Multi-language SDK bridges** (`extensions/sdk`, `extensions/sdk-rs`,
   `extensions/sdk-py`): see `docs/additive-features.md` D19 and
@@ -120,9 +120,10 @@ stay subprocess-only without giving up the pi extension API:
   divergence: do not change the SDK API to paper over it.
 
 Do not, without an explicit approved spec:
+
 - add a WASM or embedded-JS extension runtime,
 - add a dynamic Go plugin / `plugin.Open` extension loader,
-- add a linked/in-process production extension runtime,
+- add a linked/in-process production extension runtime other than the narrowly scoped let-go source realization in D89,
 - introduce multi-register (`RegisterPayload.Extensions`,
   `RequestPayload.TargetExtension`): packed cells deliberately stay on
   one socket and one registration per extension,
@@ -189,6 +190,7 @@ Probe upstream call sites, not only the declared return type: an `async` functio
 ## Reward function
 
 Highest-value work, in order:
+
 1. Find a pig-vs-pi behavior difference and fix it at the source, or number it in `docs/parity/DIVERGENCES.md`.
 2. Tighten an existing scenario comparator: `wait_contains` → `output_normalized_equal` → `output_equal` → `escaped_output_equal`, or increase `runs` where flake risk matters.
 3. Promote silent drift to a numbered divergence with call-site markers, remove condition, and parity coverage or explicit allowance.
@@ -199,6 +201,7 @@ Low-value or misleading work: green check counts, scenario counts, `covers` entr
 ## Loop smells
 
 Stop and report instead of claiming success when:
+
 - Everything passed on the first try.
 - A scenario passed before and after the supposed fix.
 - The loop produced zero bugs, zero comparator tightenings, and zero numbered divergences.
@@ -279,7 +282,7 @@ Behavioral evidence includes paired scenarios and reviewed mutation-proven unit 
 Weak scenarios not counted as behavioral verification: 4 boot-only, 4 registration-only, 1 smoke-only.
 
 | family | scenarios | behavioral | boot-only | weak | deferred | upstream behavioral covered | last run |
-|---|---:|---:|---:|---:|---:|---:|---|
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `_top` | 1 | 1 | 0 | 0 | 0 | 1 | not run |
 | `ai-sdk` | 3 | 3 | 0 | 0 | 0 | 90 | not run |
 | `autocomplete` | 13 | 13 | 0 | 0 | 0 | 5 | not run |
@@ -323,7 +326,7 @@ Test empty, ordinary, boundary, and representative stress inputs. Verify orderin
 Use a term from `docs/project/CONTEXT.md` when that file defines it. Do not redefine ratified terms in a module instruction. Read the nearest module `AGENTS.md` before work in a known reliability context. The root owns shared invariants. The module owns its contract, failure model, and evidence. Store each rule once.
 
 | Context | Instructions |
-|---|---|
+| --- | --- |
 | Transcript, Provider, Event Stream | `ai/AGENTS.md` |
 | Main Screen, terminal rendering, input editing | `tui/AGENTS.md` |
 | Session, Model Runtime, execution mode | `coding/AGENTS.md` |
@@ -368,7 +371,7 @@ agent/transform.go       # upstream transform-messages parity before provider co
 Shared-path acceptance matrix for regressions:
 
 | required axis | minimum cases |
-|---|---|
+| --- | --- |
 | provider shape | OAuth, API key, OpenAI-compatible with a custom base URL, and no default model, as the path allows |
 | API path | each API kind reached by the shared behavior, including `openai-completions` and `openai-responses` when both can apply |
 | mode | pure shared-function/converter unit test plus nearest caller (`print`, interactive, or RPC, as applicable) |
@@ -379,6 +382,7 @@ Shared-path acceptance matrix for regressions:
 ## Done criteria
 
 A surface is done only when:
+
 1. a canonical scenario exists under `test/parity/scenarios/<family>/`;
 2. `covers = [...]` names exact upstream paths from `docs/parity/PORT_MAP.md` **and** those paths are exercised by the asserted behavior;
 3. the scenario has behavioral verification quality (not boot-only, registration-only, smoke-only, or deferred) unless the surface is explicitly accepted as weak-only;
@@ -431,6 +435,7 @@ Choose the option that makes the next upstream sync smaller. Do not embed pig-sp
 Probe upstream first. Record enough evidence in comments for the next maintainer to see what was measured. Prefer strong, byte-faithful comparators. Use substring checks only when no stronger stable assertion exists.
 
 Scenario quality rules:
+
 - `covers` must name behavior exercised by the asserted crop/output, not merely code touched by startup, registration, or import/linking.
 - Boot-only scenarios may exist but cannot claim deep file coverage and do not count as behavioral verification.
 - Registration-only scenarios (for example `--list-models`) prove catalog visibility only. They must be tagged `registration-only`; they may cover registry/catalog/auth-wiring paths but must not claim provider stream/payload conversion files.
@@ -442,6 +447,7 @@ Scenario quality rules:
 - Re-probe affected cross-family scenarios when a fix changes shared behavior.
 
 Isolation rules for parallel parity:
+
 - Agent/home dirs are ephemeral copies. Never write into checked-in fixture roots.
 - Use `{{TEMP}}` for writable paths; do not hardcode `/tmp` paths.
 - tmux session names must be unique and cleanup may kill only `parity-*` sessions.
@@ -460,6 +466,7 @@ across `docs/parity/DIVERGENCES.md` and additive ledgers; duplicate IDs fail eve
 live in different files.
 
 A divergence is allowed only when it is user-visible or interop-relevant and cannot or should not be made faithful now. Every active divergence must have:
+
 - `D<N>` id in `docs/parity/DIVERGENCES.md`;
 - `SCRUTINIZED:approved`;
 - remove-when condition;
@@ -484,6 +491,7 @@ Apply [Faithful, general implementations](#faithful-general-implementations) to 
 Fix valid findings at the source. Preserve upstream behavior over stylistic lint suggestions. Use the narrowest suppression for real false positives and explain why a source fix would be less faithful or less correct. `nolintlint` is enabled; stale or unexplained pragmas fail. Security suppressions must name the CLI threat-model reason.
 
 Code and interface style:
+
 - Production comments state only current behavior and non-obvious protocol, concurrency, security, compatibility, or behavioral invariants. Delete comments that restate code, narrate an implementation pass, preserve project history, or point to `docs/parity/PORT_MAP.md`, a phase, a future row, or another status ledger instead of stating the current contract. Keep migration and parity rationale in the owning ledger or specification.
 - Do not hard-wrap Markdown prose or source comments to fit a terminal pane. Editors can display-wrap long lines. Preserve structural line breaks in code blocks, tables, quoted material, poetry, generated files, and formats with an enforced line-length contract.
 - Roadmap phases, workstream labels, future-work promises, internal issue ownership, and placeholder implementation plans fail the source-hygiene gate; keep them in tracked specifications instead.
@@ -520,6 +528,7 @@ Code and interface style:
   an explicit user-owned blocker. Passing unrelated gates does not close it.
 
 Go style:
+
 - Build, CI, release-candidate, security-analysis, and documented setup commands use Go 1.27.1.
 - Maintained modules declare Go 1.26 or 1.26.0 as their language floor unless a concrete language requirement is approved. Do not raise a `go` directive merely to match the build toolchain.
 - Use language features available at the module floor. Prefer applicable modern standard-library APIs such as `slices.Sort`, `slices.SortFunc`, `cmp.Compare`, `maps.Copy`, `slices.Sorted(maps.Keys(m))`, `strings.Cut`, `CutPrefix`, `SplitSeq`, `for i := range n`, `wg.Go`, `min`, and `max`.
@@ -527,6 +536,7 @@ Go style:
 - When observable behavior changes, update the doc comment in the same commit.
 
 Lint commands when touching lint/config/code:
+
 ```bash
 go tool golangci-lint config verify
 make lint-changed
@@ -540,6 +550,7 @@ Use `make lint-changed` in the development loop. It runs every configured linter
 Run `make generate` after changing exported Go API, CLI flags, settings, parity scenarios, or docs mirrors. Commit the result. Never hand-edit generated files; regenerate.
 
 Primary gates:
+
 ```bash
 make generate
 make build
@@ -555,6 +566,7 @@ make coverage
 ```
 
 Other gates as needed:
+
 ```bash
 make schedule-report
 make test-stress
@@ -605,6 +617,7 @@ Every commit requires both a DCO `Signed-off-by` line and a signature GitHub mar
 Before committing, run `git diff --stat HEAD` and `git status --short`, then stage only files intentionally changed. Never `git add .`, `git add -A`, or add a whole directory without inspecting contents. Testdata dirs accumulate temp files.
 
 Forbidden commands:
+
 - `git reset --hard`
 - `git checkout .`
 - `git clean -fd`
@@ -642,7 +655,7 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See <https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md> for details and anti-patterns.
 
 ## Agent Context Profiles
 
@@ -660,6 +673,7 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **Handle git/sync by active profile**:
+
    ```bash
    # Conservative/minimal/default: report status and proposed commands; wait for approval.
    git status
@@ -670,9 +684,11 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
    git push
    git status
    ```
+
 5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
 
 **Critical rules:**
+
 - Explicit user or orchestrator instructions override this Beads block.
 - Do not commit or push without clear authority from the active profile or the current user request.
 - If a required sync or push is blocked, stop and report the exact command and error.
@@ -699,5 +715,5 @@ bd prime                # Refresh Beads context
 - Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
 - Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See <https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md> for details and anti-patterns.
 <!-- END BEADS CODEX SETUP -->
