@@ -863,7 +863,7 @@ SCRUTINIZED:approved
 
 ---
 
-## D89 Approved let-go source realization (not yet implemented)
+## D89 Approved let-go source realization (not yet integrated)
 
 Stock disposition: inert capability. This record approves an implementation boundary, not a claim that Stock PiG currently discovers or runs `.lg` sources. Stock PiG must not activate a let-go extension unless the user selects it through an existing extension source path.
 
@@ -873,7 +873,7 @@ The approved first subset is tools, commands, `session_start`, `session_shutdown
 
 Input: owner chose option A on `PiG-18s.1`; the conservative no-`pig.internal.*` implementation choice is recorded there. This is additive source support, not permission to diverge from observable Pi extension behavior. Completion evidence, production decision-point markers, source/test paths, and resource measurements must be added when implementation lands; none are claimed by this record.
 
-Evidence: `PiG-18s.1` records the owner scope approval and its explicit implementation boundary; there is no runtime test evidence yet.
+Evidence: `PiG-18s.1` records the owner scope approval and its explicit implementation boundary. `coding/extension/host/letgo/generation_test.go` exercises the coordinator's namespace isolation, retained callbacks, cancellation, and retirement; it does not demonstrate source discovery or CLI loading. Add complete production-path and conformance evidence when integration lands.
 
 Remove when: let-go source support is withdrawn or the general extension source policy supersedes this narrow exception.
 
