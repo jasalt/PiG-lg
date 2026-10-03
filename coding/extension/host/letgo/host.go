@@ -6,6 +6,7 @@ package letgo
 import (
 	"context"
 	"errors"
+	"io"
 	"sync"
 
 	"github.com/nooga/let-go/pkg/api"
@@ -41,14 +42,21 @@ func NewRuntimeHost() *RuntimeHost {
 	return processHost.host
 }
 
+type Streams struct {
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
 // Generation retains the interpreter and namespace state of one source load.
 // Its callbacks must enter via Invoke rather than calling vm.Fn directly.
 type Generation struct {
-	host   *RuntimeHost
-	run    *api.LetGo
-	loader rt.NSLoader
-	names  map[string]*vm.Namespace
-	closed bool // protected by host.gate
+	host         *RuntimeHost
+	run          *api.LetGo
+	loader       rt.NSLoader
+	names        map[string]*vm.Namespace
+	stdoutHandle vm.Value
+	stderrHandle vm.Value
+	closed       bool // protected by host.gate
 }
 
 func (h *RuntimeHost) enter(ctx context.Context) error {
@@ -89,7 +97,21 @@ func (h *RuntimeHost) capture() map[string]*vm.Namespace {
 
 // NewGeneration creates an isolated interpreter namespace while holding the
 // shared gate. Load paths are selected before any user code executes.
-func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths []string, opts ...api.Option) (*Generation, error) {
+func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths []string, streams ...Streams) (*Generation, error) {
+	if len(streams) > 1 {
+		return nil, errors.New("one streams configuration is supported per generation")
+	}
+	var options Streams
+	if len(streams) != 0 {
+		options = streams[0]
+	}
+	apiOptions := make([]api.Option, 0, 2)
+	if options.Stdout != nil {
+		apiOptions = append(apiOptions, api.WithStdout(options.Stdout))
+	}
+	if options.Stderr != nil {
+		apiOptions = append(apiOptions, api.WithStderr(options.Stderr))
+	}
 	if err := h.enter(ctx); err != nil {
 		return nil, err
 	}
@@ -99,12 +121,18 @@ func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths
 		h.active = h.capture()
 		h.swap(nil, h.baseLoader)
 	}()
-	run, err := api.NewLetGo(namespace, opts...)
+	run, err := api.NewLetGo(namespace, apiOptions...)
 	if err != nil {
 		return nil, err
 	}
 	run.SetLoadPath(paths)
 	g := &Generation{host: h, run: run, loader: rt.GetNSLoader(), names: h.capture()}
+	if options.Stdout != nil {
+		g.stdoutHandle = vm.NewBoxed(rt.NewWriterHandle("letgo.Stdout", options.Stdout))
+	}
+	if options.Stderr != nil {
+		g.stderrHandle = vm.NewBoxed(rt.NewWriterHandle("letgo.Stderr", options.Stderr))
+	}
 	return g, nil
 }
 
@@ -137,8 +165,24 @@ func (g *Generation) Run(ctx context.Context, source string) (vm.Value, error) {
 }
 
 // Invoke calls a retained interpreted function in its originating generation.
+// It restores the generation's output bindings because vm.Fn.Invoke bypasses
+// api.Run's per-evaluation binding scope.
 func (g *Generation) Invoke(ctx context.Context, fn vm.Fn, args []vm.Value) (vm.Value, error) {
-	return g.withVM(ctx, func() (vm.Value, error) { return fn.Invoke(args) })
+	return g.withVM(ctx, func() (vm.Value, error) {
+		if g.stdoutHandle != nil {
+			if out := rt.LookupCoreVar("*out*"); out != nil {
+				out.PushBinding(g.stdoutHandle)
+				defer out.PopBinding()
+			}
+		}
+		if g.stderrHandle != nil {
+			if stderr := rt.LookupCoreVar("*err*"); stderr != nil {
+				stderr.PushBinding(g.stderrHandle)
+				defer stderr.PopBinding()
+			}
+		}
+		return fn.Invoke(args)
+	})
 }
 
 // Close prevents new callbacks after earlier calls have left the VM. It does

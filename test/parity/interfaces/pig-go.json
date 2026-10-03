@@ -13,6 +13,7 @@
     "github.com/MichaelKinsy/PiG/coding/extension/host/fusepack",
     "github.com/MichaelKinsy/PiG/coding/extension/host/inproc",
     "github.com/MichaelKinsy/PiG/coding/extension/host/invocation",
+    "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
     "github.com/MichaelKinsy/PiG/coding/extension/host/runtimecell",
     "github.com/MichaelKinsy/PiG/coding/extension/host/subprocess",
     "github.com/MichaelKinsy/PiG/coding/extension/host/subprocess/internal/noderuntimegen",
@@ -76528,6 +76529,182 @@
         "type": "func()"
       },
       "shapeHash": "sha256:032e891204f123caf14d3d421fa9728efc3f31299c17e98859c219dccddd74fb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#ErrClosed",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "ErrClosed",
+      "kind": "variable",
+      "exported": true,
+      "shape": {
+        "type": "error"
+      },
+      "shapeHash": "sha256:6320ac68bd22b44fdcc4619eb1bb6166e15ab5fc8e78dbf2401aeda8f9e49a1d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation",
+      "kind": "type",
+      "exported": true,
+      "shape": {
+        "type": "Generation"
+      },
+      "shapeHash": "sha256:e84a7e6ac292e8ebdf457755f4157d2a74a7df46fc6478ad4632eb60a91b5f63"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation.Close",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation.Close",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context) error"
+      },
+      "shapeHash": "sha256:1308e2e58e033a63ea9692ed75c8c737d1759c4953f8048cc0018fe7148bf370"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation.Def",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation.Def",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context, name string, value any) error"
+      },
+      "shapeHash": "sha256:3f61287d9b6896206e4025e5adcbb28881aa6789fb8124c9c23d2f67620504eb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation.Invoke",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation.Invoke",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context, fn github.com/nooga/let-go/pkg/vm.Fn, args []github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:1ef60546b132d0e4d641b13e55b30b5d5e11c645d987cfba978d6ff05d587824"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation.Run",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation.Run",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context, source string) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:2778655450fbce2321f9a04f14a6ff5b7dfc7df3820a72bfeaf6058b68623aeb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Generation.withVM",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Generation.withVM",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, call func() (github.com/nooga/let-go/pkg/vm.Value, error)) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:4a48f575c8291990a79dbe1d5bfa09ebe14ad4d95435d99fc95d67a102809d2d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#NewRuntimeHost",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "NewRuntimeHost",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() *RuntimeHost"
+      },
+      "shapeHash": "sha256:7dc16f67a6611e570a5c594fe493b14b6e8c844e686808f495d0377a7f10d290"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost",
+      "kind": "type",
+      "exported": true,
+      "shape": {
+        "type": "RuntimeHost"
+      },
+      "shapeHash": "sha256:7ff3c66137720e2a130b6e71a7d5f6d2a3a7fb1b066339cd81a461e49104c816"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost.NewGeneration",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost.NewGeneration",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context, namespace string, paths []string, streams ...Streams) (*Generation, error)"
+      },
+      "shapeHash": "sha256:f5e31c7e24701a20d20156708740e9545dc9ae6ef590e5d62848e4b6564f68e9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost.capture",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost.capture",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() map[string]*github.com/nooga/let-go/pkg/vm.Namespace"
+      },
+      "shapeHash": "sha256:47b29fac511dc4ecc9b133d65d972b1ec7ccc77e4711f18b8cb53c0148af0d93"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost.enter",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost.enter",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context) error"
+      },
+      "shapeHash": "sha256:1308e2e58e033a63ea9692ed75c8c737d1759c4953f8048cc0018fe7148bf370"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost.leave",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost.leave",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func()"
+      },
+      "shapeHash": "sha256:032e891204f123caf14d3d421fa9728efc3f31299c17e98859c219dccddd74fb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost.swap",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "RuntimeHost.swap",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(names map[string]*github.com/nooga/let-go/pkg/vm.Namespace, loader github.com/nooga/let-go/pkg/rt.NSLoader)"
+      },
+      "shapeHash": "sha256:dcf7a9909c69297a06ed11c0ea264f3179525cfc43e47fb1b430e213579b67d8"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Streams",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Streams",
+      "kind": "type",
+      "exported": true,
+      "shape": {
+        "type": "Streams"
+      },
+      "shapeHash": "sha256:9379f6383a5b29cadd8d68fbe12edab34940e20ff69f624cecbeedc29f01ac2b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#processHost",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "processHost",
+      "kind": "variable",
+      "exported": false,
+      "shape": {
+        "type": "struct{sync.Once; host *RuntimeHost}"
+      },
+      "shapeHash": "sha256:6237813a37e2f204b5cec493d8efeb0522a109a43ceeef8a03e35380925ac895"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/runtimecell#AcquireArtifactUsageLease",

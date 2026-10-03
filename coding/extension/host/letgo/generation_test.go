@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nooga/let-go/pkg/api"
 	"github.com/nooga/let-go/pkg/rt"
 	"github.com/nooga/let-go/pkg/vm"
 
@@ -22,6 +21,8 @@ func TestGenerationSeparateRootsAndOutput(t *testing.T) {
 	host := letgo.NewRuntimeHost()
 	var generations []*letgo.Generation
 	var callbacks []vm.Fn
+	var printCallbacks []vm.Fn
+	var errorCallbacks []vm.Fn
 	var outputs []*bytes.Buffer
 	var errors []*bytes.Buffer
 	for _, name := range []string{"first", "second"} {
@@ -33,7 +34,7 @@ func TestGenerationSeparateRootsAndOutput(t *testing.T) {
 			t.Fatal(err)
 		}
 		var output, stderr bytes.Buffer
-		generation, err := host.NewGeneration(ctx, "pig.test."+name, []string{root}, api.WithStdout(&output), api.WithStderr(&stderr))
+		generation, err := host.NewGeneration(ctx, "pig.test."+name, []string{root}, letgo.Streams{Stdout: &output, Stderr: &stderr})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -45,6 +46,16 @@ func TestGenerationSeparateRootsAndOutput(t *testing.T) {
 			t.Fatal(err)
 		}
 		callbacks = append(callbacks, callback.(vm.Fn))
+		printCallback, err := generation.Run(ctx, "(fn [] (println helper/answer))")
+		if err != nil {
+			t.Fatal(err)
+		}
+		printCallbacks = append(printCallbacks, printCallback.(vm.Fn))
+		errorCallback, err := generation.Run(ctx, "(fn [] (binding [*out* *err*] (println helper/answer)))")
+		if err != nil {
+			t.Fatal(err)
+		}
+		errorCallbacks = append(errorCallbacks, errorCallback.(vm.Fn))
 		generations = append(generations, generation)
 		outputs = append(outputs, &output)
 		errors = append(errors, &stderr)
@@ -54,6 +65,14 @@ func TestGenerationSeparateRootsAndOutput(t *testing.T) {
 		generation, output := generations[index], outputs[index]
 		if result, err := generation.Invoke(ctx, callbacks[index], nil); err != nil || result != vm.String(name) {
 			t.Fatalf("%s retained helper closure: %v %v", name, result, err)
+		}
+		before := output.Len()
+		if _, err := generation.Invoke(ctx, printCallbacks[index], nil); err != nil || output.Len() <= before {
+			t.Fatalf("%s callback stdout=%q error=%v", name, output.String(), err)
+		}
+		before = errors[index].Len()
+		if _, err := generation.Invoke(ctx, errorCallbacks[index], nil); err != nil || errors[index].Len() <= before {
+			t.Fatalf("%s callback stderr=%q error=%v", name, errors[index].String(), err)
 		}
 		result, err := generation.Run(ctx, "(do (println helper/answer) helper/answer)")
 		if err != nil || result != vm.String(name) || !strings.Contains(output.String(), name) {
