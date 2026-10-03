@@ -165,3 +165,10 @@ coding/extension/host/runtimecell/**/*.py[cod]
 
 # node_modules symlinks to a shared checkout are not directories, so node_modules/ does not match them.
 node_modules
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*

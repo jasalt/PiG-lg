@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "PiG",
+  "project_id": "0d78bd7e-93ad-4228-be59-b3033e445047"
+}
