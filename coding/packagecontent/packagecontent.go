@@ -2307,7 +2307,7 @@ func discoverExtensionEntries(dir string) []string {
 			continue
 		}
 		// pig additive (D89): exact let-go files share the existing extension discovery inventory.
-		if info.Mode().IsRegular() && (strings.HasSuffix(entry.Name(), ".ts") || strings.HasSuffix(entry.Name(), ".js") || strings.HasSuffix(entry.Name(), ".lg")) {
+		if info.Mode().IsRegular() && (strings.HasSuffix(entry.Name(), ".ts") || strings.HasSuffix(entry.Name(), ".js") || extsource.IsLetGoFile(entry.Name())) {
 			paths = append(paths, full)
 		}
 	}
@@ -2328,7 +2328,7 @@ func resolveExtensionEntries(dir string) []string {
 		return nil
 	}
 	// pig additive (D89): a conventional interpreter root remains one source for the common resolver to validate.
-	if hasBuildFile(dir) || fileExists(filepath.Join(dir, "extension.lg")) {
+	if hasBuildFile(dir) || extsource.HasLetGoEntry(dir) {
 		return []string{dir}
 	}
 	if fileExists(filepath.Join(dir, "go.work")) && !hasChildExtensionEntry(dir) {
@@ -2354,13 +2354,13 @@ func hasChildExtensionEntry(dir string) bool {
 			continue
 		}
 		if info.IsDir() {
-			if len(extsource.NodeRootEntries(full)) > 0 || hasBuildFile(full) || fileExists(filepath.Join(full, "go.work")) || fileExists(filepath.Join(full, "extension.lg")) {
+			if len(extsource.NodeRootEntries(full)) > 0 || hasBuildFile(full) || fileExists(filepath.Join(full, "go.work")) || extsource.HasLetGoEntry(full) {
 				return true
 			}
 			continue
 		}
 		// pig additive (D89): exact interpreted entries also disambiguate parent workspaces.
-		if info.Mode().IsRegular() && (strings.HasSuffix(entry.Name(), ".ts") || strings.HasSuffix(entry.Name(), ".js") || strings.HasSuffix(entry.Name(), ".lg")) {
+		if info.Mode().IsRegular() && (strings.HasSuffix(entry.Name(), ".ts") || strings.HasSuffix(entry.Name(), ".js") || extsource.IsLetGoFile(entry.Name())) {
 			return true
 		}
 	}

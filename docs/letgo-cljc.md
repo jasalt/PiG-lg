@@ -1,6 +1,6 @@
 # Portable .cljc source on let-go (D89)
 
-These are measured observations for pinned let-go v1.12.2. They describe interpreter behavior inside the let-go generation coordinator. They do not claim that PiG source discovery recognizes `.cljc` entries; canonical source resolution is a separate change.
+These are measured observations for pinned let-go v1.12.2. They describe interpreter behavior inside the let-go generation coordinator. Canonical source resolution (`coding/extension/source`) recognizes an exact `.cljc` file and the conventional `extension.cljc` directory entry. A directory holding both `extension.lg` and `extension.cljc` is ambiguous. Only `.lg` files and `extension.cljc` mark a directory as let-go, so `.cljc` files in a ClojureScript Node package keep it a Node extension. These forms route through the shared inventory but are not yet loaded on normal CLI startup.
 
 ## Measured behavior
 

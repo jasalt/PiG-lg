@@ -87,6 +87,32 @@ func TestResolveConventionalForms(t *testing.T) {
 			},
 		},
 		{
+			name: "let-go exact portable factory", language: "let-go", form: Factory, entry: "review.cljc",
+			prepare: func(t *testing.T, root string) string {
+				path := filepath.Join(root, "review.cljc")
+				writeSourceTestFile(t, path, "(ns review)\n")
+				return path
+			},
+		},
+		{
+			name: "let-go conventional portable directory", language: "let-go", form: Factory, entry: "extension.cljc",
+			prepare: func(t *testing.T, root string) string {
+				writeSourceTestFile(t, filepath.Join(root, "extension.cljc"), "(ns review)\n")
+				writeSourceTestFile(t, filepath.Join(root, "helper.cljc"), "(ns helper)\n")
+				writeSourceTestFile(t, filepath.Join(root, "review", "core.cljc"), "(ns review.core)\n")
+				return root
+			},
+		},
+		{
+			name: "clojurescript node package stays node", language: "node", form: Factory,
+			prepare: func(t *testing.T, root string) string {
+				writeSourceTestFile(t, filepath.Join(root, "package.json"), `{"name":"cljs-ext"}`)
+				writeSourceTestFile(t, filepath.Join(root, "index.js"), "export default function extension(pi) {}\n")
+				writeSourceTestFile(t, filepath.Join(root, "shared.cljc"), "(ns shared)\n")
+				return root
+			},
+		},
+		{
 			name: "node factory stays isolated", language: "node", form: Factory,
 			prepare: func(t *testing.T, root string) string {
 				writeSourceTestFile(t, filepath.Join(root, "index.js"), "export default function extension(pi) {}\n")
@@ -190,6 +216,19 @@ func TestResolveRejectsAmbiguousAndNonstandardFactories(t *testing.T) {
 			},
 		},
 		{
+			name: "let-go both conventional entries", want: "both extension.lg and extension.cljc",
+			prepare: func(t *testing.T, root string) {
+				writeSourceTestFile(t, filepath.Join(root, "extension.lg"), "(ns one)\n")
+				writeSourceTestFile(t, filepath.Join(root, "extension.cljc"), "(ns two)\n")
+			},
+		},
+		{
+			name: "helper-only cljc directory is not guessed", want: "extension.cljc",
+			prepare: func(t *testing.T, root string) {
+				writeSourceTestFile(t, filepath.Join(root, "helper.cljc"), "(ns helper)\n")
+			},
+		},
+		{
 			name: "let-go multiple candidate entries", want: "multiple let-go entry candidates",
 			prepare: func(t *testing.T, root string) {
 				writeSourceTestFile(t, filepath.Join(root, "foo.lg"), "(ns foo)\n")
@@ -235,6 +274,29 @@ func TestResolveLetGoMixedLanguageRoots(t *testing.T) {
 				t.Fatalf("mixed language root error = %v", err)
 			}
 		})
+	}
+}
+
+func TestResolveLetGoPortableMixedLanguageRoots(t *testing.T) {
+	for _, marker := range []string{"go.mod", "Cargo.toml", "pyproject.toml", "package.json", "helper.py", "index.js"} {
+		t.Run(marker, func(t *testing.T) {
+			root := t.TempDir()
+			writeSourceTestFile(t, filepath.Join(root, "extension.cljc"), "(ns extension)\n")
+			writeSourceTestFile(t, filepath.Join(root, marker), "")
+			_, err := Resolve(root)
+			if err == nil || !strings.Contains(err.Error(), "multiple extension languages") || !strings.Contains(err.Error(), "let-go") {
+				t.Fatalf("mixed language root error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveExactCljIsNotALetGoEntry(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "extension.clj")
+	writeSourceTestFile(t, path, "(ns extension)\n")
+	def, err := Resolve(path)
+	if err == nil || def.Language == "let-go" || !strings.Contains(err.Error(), "not an executable") {
+		t.Fatalf("exact .clj resolved as %#v, %v", def, err)
 	}
 }
 

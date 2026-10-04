@@ -86,7 +86,7 @@ func Resolve(input string) (Definition, error) {
 		}
 	}
 	if len(languages) == 0 {
-		return Definition{}, fmt.Errorf("extension %s has no recognized factory or standalone source; use func Extension() *sdk.Extension, pub fn new_extension() -> Extension, def new_extension() -> Extension, a Node default export, extension.lg, or an exact executable", absolute)
+		return Definition{}, fmt.Errorf("extension %s has no recognized factory or standalone source; use func Extension() *sdk.Extension, pub fn new_extension() -> Extension, def new_extension() -> Extension, a Node default export, extension.lg, extension.cljc, or an exact executable", absolute)
 	}
 	if len(languages) > 1 {
 		return Definition{}, fmt.Errorf("extension %s contains multiple extension languages %v; select one exact language root", absolute, languages)
@@ -109,7 +109,7 @@ func Resolve(input string) (Definition, error) {
 
 func resolveFile(path string, info os.FileInfo) (Definition, error) {
 	ext := strings.ToLower(filepath.Ext(path))
-	if ext == ".lg" {
+	if IsLetGoFile(path) {
 		if !info.Mode().IsRegular() {
 			return Definition{}, fmt.Errorf("let-go extension %s is not a regular file", path)
 		}
@@ -164,11 +164,17 @@ func detectLanguages(root string) []string {
 	}
 	hasMarker := len(languages) > 0
 	entries, _ := os.ReadDir(root)
+	// Only .lg files and the conventional extension.cljc mark let-go: arbitrary .cljc
+	// files also appear in ClojureScript Node packages and must not reclassify them.
+	letGo := exists(filepath.Join(root, "extension.cljc"))
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.ToLower(filepath.Ext(entry.Name())) == ".lg" {
-			languages = append(languages, "let-go")
+			letGo = true
 			break
 		}
+	}
+	if letGo {
+		languages = append(languages, "let-go")
 	}
 	if hasMarker {
 		slices.Sort(languages)
@@ -635,22 +641,32 @@ func resolveLetGo(root string) (Definition, error) {
 			candidates = append(candidates, entry.Name())
 		}
 	}
-	path := filepath.Join(root, "extension.lg")
-	info, err := os.Stat(path)
-	if err == nil {
+	var found []string
+	for _, name := range LetGoEntryNames {
+		path := filepath.Join(root, name)
+		info, err := os.Stat(path)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return Definition{}, err
+			}
+			continue
+		}
 		if !info.Mode().IsRegular() {
 			return Definition{}, fmt.Errorf("let-go extension %s is not a regular file", path)
 		}
-		// pig additive (D89): one conventional entry selects a trusted in-process source.
-		return Definition{Language: "let-go", Form: Factory, Root: root, Entrypoint: path}, nil
+		found = append(found, name)
 	}
-	if err != nil && !os.IsNotExist(err) {
-		return Definition{}, err
+	switch len(found) {
+	case 1:
+		// pig additive (D89): one conventional entry selects a trusted in-process source.
+		return Definition{Language: "let-go", Form: Factory, Root: root, Entrypoint: filepath.Join(root, found[0])}, nil
+	case 2:
+		return Definition{}, fmt.Errorf("let-go extension %s has both extension.lg and extension.cljc; select an exact file", root)
 	}
 	if len(candidates) > 1 {
-		return Definition{}, fmt.Errorf("let-go extension %s has multiple let-go entry candidates %v; select an exact .lg file or provide extension.lg", root, candidates)
+		return Definition{}, fmt.Errorf("let-go extension %s has multiple let-go entry candidates %v; select an exact .lg or .cljc file or provide extension.lg or extension.cljc", root, candidates)
 	}
-	return Definition{}, fmt.Errorf("let-go extension %s has no extension.lg entry; select an exact .lg file", root)
+	return Definition{}, fmt.Errorf("let-go extension %s has no extension.lg or extension.cljc entry; select an exact .lg or .cljc file", root)
 }
 
 func resolveNode(root string) (Definition, error) {

@@ -26,6 +26,24 @@ func TestResolveLetgoRetainsExactEntrypointAndIdentityWithoutSubprocessSDK(t *te
 	}
 }
 
+func TestResolveLetgoPortableEntryRoutesAsInterpreter(t *testing.T) {
+	root := t.TempDir()
+	entry := filepath.Join(root, "extension.cljc")
+	writeResolverFile(t, entry, "(ns ready)")
+	for _, selected := range []string{root, entry} {
+		cfg, _, err := ResolveExtConfigWithIdentity(selected, "portable")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.RuntimeKind != "let-go" || cfg.SDKName != "" || cfg.Entrypoint != entry || cfg.Path != "" {
+			t.Fatalf("configuration %#v", cfg)
+		}
+		if cells := PlanCells([]ExtConfig{cfg}, nil); len(cells) != 0 {
+			t.Fatalf("portable interpreter entered process cells %#v", cells)
+		}
+	}
+}
+
 func TestLetgoNeverEntersProcessOrFusedAdmission(t *testing.T) {
 	root := t.TempDir()
 	writeResolverFile(t, filepath.Join(root, "extension.lg"), "(def ready true)")

@@ -587,7 +587,7 @@ func pathToExtConfigs(path string, resolvers ...extsource.ResolveFunc) []subproc
 		return []subprocess.ExtConfig{config}
 	}
 	// pig additive (D89): an exact interpreted source never falls back to executable admission when resolution fails.
-	if filepath.Ext(path) == ".lg" {
+	if extsource.IsLetGoFile(path) {
 		return []subprocess.ExtConfig{subprocess.UnresolvedExtConfig(path, err)}
 	}
 	if info, statErr := os.Stat(path); statErr == nil && info.IsDir() {

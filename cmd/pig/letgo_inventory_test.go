@@ -119,3 +119,36 @@ func TestLetgoInventoryFailedExactSourceNeverFallsBackToExecutable(t *testing.T)
 		t.Fatalf("missing interpreter fallback %#v", configs)
 	}
 }
+
+func TestLetgoInventoryPortableCljcSources(t *testing.T) {
+	t.Setenv("PIG_HOME", t.TempDir())
+	cwd, agent := t.TempDir(), t.TempDir()
+	user := filepath.Join(agent, "extensions", "direct.cljc")
+	workspace := filepath.Join(cwd, ".pig", "extensions", "nested", "extension.cljc")
+	cli := filepath.Join(cwd, "cli.cljc")
+	for _, entry := range []string{user, workspace, cli} {
+		writeLetgoInventoryFile(t, entry, "(ns selected)")
+	}
+	// A helper namespace beside the conventional entry is required by it, not selected separately.
+	writeLetgoInventoryFile(t, filepath.Join(cwd, ".pig", "extensions", "nested", "nested", "core.cljc"), "(ns nested.core)")
+	sm := codingagent.NewSettingsManager(cwd, agent)
+	scopes := []string{"user", "workspace"}
+	configs := collectExtensionConfigs(cwd, agent, sm, CLIFlags{Extensions: []string{cli}}, &scopes)
+	var got []string
+	for _, cfg := range configs {
+		if cfg.RuntimeKind != "let-go" || cfg.SDKName != "" || cfg.ResolveError() != nil {
+			t.Fatalf("configuration %#v", cfg)
+		}
+		got = append(got, cfg.Entrypoint)
+	}
+	if want := []string{cli, workspace, user}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("selected %v; want %v", got, want)
+	}
+	if cells := subprocess.PlanCells(configs, nil); len(cells) != 0 {
+		t.Fatalf("portable interpreter sources in process plan %#v", cells)
+	}
+	missing := pathToExtConfigs(filepath.Join(t.TempDir(), "missing.cljc"))
+	if len(missing) != 1 || missing[0].ResolveError() == nil || missing[0].Path != "" {
+		t.Fatalf("missing portable source fell back to executable %#v", missing)
+	}
+}
