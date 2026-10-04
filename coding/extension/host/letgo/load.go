@@ -148,6 +148,17 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 
 func (l *Loaded) phaseError(phase string, err error) error { return l.newPhaseError(phase, err) }
 
+// callbackError is phaseError for a failed interpreted callback. A callback cancelled mid-flight, for example while it awaits a dialog,
+// returns an error the interpreter flattened to text; when the request was cancelled it keeps that cancellation visible to errors.Is, as a
+// native handler's returned context error is.
+func (l *Loaded) callbackError(ctx context.Context, phase string, err error) error {
+	failure := l.newPhaseError(phase, err)
+	if ctxErr := ctx.Err(); ctxErr != nil && !errors.Is(err, ctxErr) {
+		failure.cancelled = ctxErr
+	}
+	return failure
+}
+
 func (l *Loaded) newPhaseError(phase string, err error) *PhaseError {
 	failure := &PhaseError{Path: l.path, Phase: phase, Err: err}
 	if failure.Category() == PhaseRegister {
@@ -243,7 +254,7 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 			return []vm.Value{arguments, &toolUpdate{owner: l, token: token, update: updateCallback(onUpdate)}, &signalToken{owner: l, context: token, signal: ctx}, callbackContext}
 		})
 		if err != nil {
-			return nil, l.phaseError("execute tool "+definition.Name, err)
+			return nil, l.callbackError(ctx, "execute tool "+definition.Name, err)
 		}
 		decoded, err := toolResultValue(result)
 		if err != nil {
@@ -376,7 +387,7 @@ func (l *Loaded) registerCommand(value vm.Value) (vm.Value, error) {
 	options.Handler = func(ctx context.Context, args string) error {
 		_, err := l.invoke(ctx, callback, vm.String(args))
 		if err != nil {
-			return l.phaseError("execute command "+commandName, err)
+			return l.callbackError(ctx, "execute command "+commandName, err)
 		}
 		return nil
 	}

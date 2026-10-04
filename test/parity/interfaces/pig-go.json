@@ -77224,6 +77224,17 @@
       "shapeHash": "sha256:5b2cfdfc53a6bd5f255b003abdc48e1fe612d9325473b14a30607cb7aa755ae7"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.callbackError",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.callbackError",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, phase string, err error) error"
+      },
+      "shapeHash": "sha256:d574aeb77181c29dbd8219820d9ea359b9b938c19a5d9cf59863e6faabb7d8a9"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.contextRead",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.contextRead",
@@ -77505,9 +77516,9 @@
       "kind": "function",
       "exported": true,
       "shape": {
-        "type": "func() error"
+        "type": "func() []error"
       },
-      "shapeHash": "sha256:6af1cd6889de8772da28bb1f2998d0262659331d5ba93f6bf1933b49a3efd5e9"
+      "shapeHash": "sha256:37478fdf5e8948aa8a01a8ab0577b707b1b1512f6963742ab3ae9050136efefc"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseEval",

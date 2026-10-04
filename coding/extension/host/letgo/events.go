@@ -26,7 +26,7 @@ func lifecycleAdapter[E any](name string, register func(*registrationBuilder, fu
 			}
 			_, err = owner.invokeEvent(ctx, callback, value)
 			if err != nil {
-				return owner.phaseError("event "+name, err)
+				return owner.callbackError(ctx, "event "+name, err)
 			}
 			return nil
 		})
@@ -99,7 +99,7 @@ func registerResultHook[E, R any](event string, register func(*registrationBuild
 			}
 			returned, err := owner.invokeEventOnly(ctx, callback, public)
 			if err != nil {
-				return zero, owner.phaseError("event "+event, err)
+				return zero, owner.callbackError(ctx, "event "+event, err)
 			}
 			return hookResult[R](owner, event, returned, unsupported)
 		})

@@ -25,10 +25,17 @@ type PhaseError struct {
 	Err   error
 	// category overrides the one Phase implies, when the interpreter wrapped a more specific host failure.
 	category string
+	// cancelled is the request's cancellation, kept so errors.Is sees it though the interpreter flattened the error it propagated.
+	cancelled error
 }
 
 func (e *PhaseError) Error() string { return fmt.Sprintf("%s: %s: %v", e.Path, e.Phase, e.Err) }
-func (e *PhaseError) Unwrap() error { return e.Err }
+func (e *PhaseError) Unwrap() []error {
+	if e.cancelled != nil {
+		return []error{e.Err, e.cancelled}
+	}
+	return []error{e.Err}
+}
 
 // Category groups the detailed phase into one of the Phase constants.
 func (e *PhaseError) Category() string {

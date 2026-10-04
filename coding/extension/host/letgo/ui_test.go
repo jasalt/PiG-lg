@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/MichaelKinsy/PiG/coding/extension"
@@ -142,8 +141,10 @@ func TestUIAvailabilityCancellationAndStaleContext(t *testing.T) {
 	<-entered
 	cancel()
 	<-done
-	if len(reports) != 1 || !strings.Contains(reports[0].Error, context.Canceled.Error()) {
-		t.Fatalf("cancellation reports %#v", reports)
+	// A request cancelled while its callback awaits a dialog is not an extension failure: the runner suppresses an error that is the
+	// request's own cancellation, as for a native handler that returns its context's error.
+	if len(reports) != 0 {
+		t.Fatalf("cancellation reported as an extension error: %#v", reports)
 	}
 	saved, err := loaded.generation.Run(t.Context(), `(deref pig.ui.modes/saved)`)
 	if err != nil {
