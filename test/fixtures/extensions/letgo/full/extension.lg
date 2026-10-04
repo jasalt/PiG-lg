@@ -1,0 +1,25 @@
+(ns pig.fixture.tool
+  (:require [pig.extension :as pig]))
+
+(pig/register-tool!
+  {:name "hello"
+   :description "Say hello"
+   :parameters {:type "object"
+                :properties {:name {:type "string"}}
+                :required ["name"]}
+   :execute (fn [c params]
+              {:content [{:type "text" :text (str "Hello " (:name params))}]
+               :details {:received (:name params)}})})
+
+(pig/register-tool!
+  {:name "other"
+   :parameters {:type "object"}
+   :execute (fn [c params] {:content []})})
+
+(pig/register-tool!
+  {:name "hello"
+   :description "Say hello after replacement"
+   :parameters {:type "object"}
+   :execute (fn [c params]
+              {:content [{:type "text" :text (str "Welcome " (:name params))}]
+               :details {:received (:name params)}})})

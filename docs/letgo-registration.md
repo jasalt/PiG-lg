@@ -12,7 +12,7 @@ The existing MCP construction path remains unchanged. No MCP-specific notificati
 
 ## Integration evidence
 
-The registration tests exercise construction and real `inproc.Runner` dispatch. They do not prove interpreted loader or CLI integration. `PiG-18s.9` must use the builder from the real let-go loader before `PiG-18s.7` closes. Runtime source routing, trust, reload, and Session retirement remain separate obligations.
+`Load` evaluates the selected source, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. These tests do not prove CLI integration. Runtime source routing, trust, reload, and Session retirement remain separate obligations. Full extension-tree regression remains a required acceptance gate.
 
 Run the focused tests with:
 

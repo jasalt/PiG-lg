@@ -13,6 +13,8 @@ import (
 
 	"github.com/nooga/let-go/pkg/vm"
 
+	"github.com/MichaelKinsy/PiG/agent"
+	"github.com/MichaelKinsy/PiG/ai"
 	"github.com/MichaelKinsy/PiG/coding/extension"
 )
 
@@ -256,6 +258,38 @@ func objectValue(value vm.Sequable, path string, depth int) (any, error) {
 		result[name] = item
 	}
 	return result, nil
+}
+
+// toolResultValue uses native text/image content decoding and retains explicit result-member presence.
+// Map conversion does not supply authored insertion order; MemberOrder records deterministic snapshot order only.
+func toolResultValue(value vm.Value) (agent.AgentToolResult, error) {
+	plain, err := fromValue(value)
+	if err != nil {
+		return agent.AgentToolResult{}, err
+	}
+	object, ok := plain.(map[string]any)
+	if !ok {
+		return agent.AgentToolResult{}, fmt.Errorf("$: tool result must be an object")
+	}
+	if _, ok := object["content"].([]any); !ok {
+		return agent.AgentToolResult{}, fmt.Errorf("$.content: tool result requires an array")
+	}
+	data, err := json.Marshal(object)
+	if err != nil {
+		return agent.AgentToolResult{}, err
+	}
+	var message ai.ToolResultMessage
+	if err := json.Unmarshal(data, &message); err != nil {
+		return agent.AgentToolResult{}, fmt.Errorf("$: tool result: %w", err)
+	}
+	var extra struct {
+		StructuredContent json.RawMessage `json:"structuredContent"`
+		Terminate         bool            `json:"terminate"`
+	}
+	if err := json.Unmarshal(data, &extra); err != nil {
+		return agent.AgentToolResult{}, fmt.Errorf("$: tool result: %w", err)
+	}
+	return agent.AgentToolResult{Content: message.Content, Details: message.Details, IsError: message.IsError, Usage: message.Usage, StructuredContent: extra.StructuredContent, Terminate: extra.Terminate, MemberOrder: slices.Sorted(maps.Keys(object))}, nil
 }
 
 // decodeValue delegates typed unions and presence flags to their native JSON decoders.
