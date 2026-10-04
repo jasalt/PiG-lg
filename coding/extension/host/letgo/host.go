@@ -138,6 +138,7 @@ func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths
 	h.swap(nil, h.baseLoader)
 	defer func() {
 		rt.CurrentNS.SetRoot(previousNS)
+		releaseFormSources()
 		h.active = h.capture()
 		h.swap(nil, h.baseLoader)
 	}()
@@ -175,11 +176,23 @@ func (g *Generation) withVM(ctx context.Context, call func() (vm.Value, error)) 
 		g.scope.Store(nil)
 		g.currentNS = rt.CurrentNS.Deref()
 		rt.CurrentNS.SetRoot(previousNS)
+		releaseFormSources()
 		g.names = g.host.capture()
 		g.host.active = g.names
 		g.host.swap(nil, g.host.baseLoader)
 	}()
 	return call()
+}
+
+// releaseFormSources drops the interpreter's process-wide form-to-location table at the end of a serialized VM entry.
+// The pinned interpreter never evicts it and each entry pins its parsed form, so without this every load, reload and compile-time require
+// would leave its forms alive for the life of the process. The compiler reads the table only while it compiles, which happens inside an
+// entry; runtime errors take their locations from each chunk's own source map, which this does not touch. The caller holds the VM gate,
+// so no other compile is reading the table.
+func releaseFormSources() {
+	if vm.FormSource.Len() != 0 {
+		vm.FormSource.Reset()
+	}
 }
 
 // CallbackContext marks the context passed to synchronous Go host functions
@@ -251,6 +264,7 @@ func (g *Generation) Close(ctx context.Context) error {
 	}
 	defer g.host.leave()
 	g.closed = true
+	releaseFormSources()
 	g.names = nil
 	g.currentNS = nil
 	g.run = nil

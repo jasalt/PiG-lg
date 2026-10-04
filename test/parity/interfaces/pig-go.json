@@ -78412,6 +78412,17 @@
       "shapeHash": "sha256:071c24eca2222efb14d7915dff2d7276705af1d86557fd0fe61777d177c502f2"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#releaseFormSources",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "releaseFormSources",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func()"
+      },
+      "shapeHash": "sha256:032e891204f123caf14d3d421fa9728efc3f31299c17e98859c219dccddd74fb"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#resolveEntry",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "resolveEntry",

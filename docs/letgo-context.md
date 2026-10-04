@@ -41,7 +41,7 @@ Callback-time `(pig.extension/register-tool! api tool)` updates the shared nativ
 
 The native caller waits for callback completion. All VM entry is coordinated. Reads execute on the callback worker, not the TUI input/render loop. The later startup/event integration must preserve that execution rule. Queued VM cancellation and pure interpreted CPU work retain the coordinator's documented cooperative semantics.
 
-A 10,000-entry native-session read benchmark drives interpreted command dispatch through `inproc.Runner`. On Linux/amd64 with Go 1.27.1, one measurement was approximately 58 ms, 48.9 MB allocated, and 1.08 million allocations per read. The allocation profile identifies persistent-map construction, JSON encoding/decoding, and recursive conversion as cost centers. This is proportional snapshot work, not a bounded-latency claim or a reason to run history reads on the input loop. Global interpreter source-form retention remains a separate unresolved reload-lifetime obligation; see `PiG-18s.21`.
+A 10,000-entry native-session read benchmark drives interpreted command dispatch through `inproc.Runner`. On Linux/amd64 with Go 1.27.1, one measurement was approximately 58 ms, 48.9 MB allocated, and 1.08 million allocations per read. The allocation profile identifies persistent-map construction, JSON encoding/decoding, and recursive conversion as cost centers. This is proportional snapshot work, not a bounded-latency claim or a reason to run history reads on the input loop. The interpreter's process-wide form-source table is reset at each serialized entry; see [let-go generation lifetime](letgo-lifetime.md).
 
 Run the context regressions and benchmark with:
 

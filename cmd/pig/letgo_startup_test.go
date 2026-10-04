@@ -10,8 +10,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/nooga/let-go/pkg/rt"
+	"github.com/nooga/let-go/pkg/vm"
 
 	"github.com/MichaelKinsy/PiG/coding/extension"
 	"github.com/MichaelKinsy/PiG/coding/extension/host/inproc"
@@ -528,4 +532,95 @@ func TestLetGoDiagnosticsNameTheSourceAndPhaseAtEveryStage(t *testing.T) {
 		})
 		p.closeAndWait("after the command error")
 	})
+}
+
+// shutdownCounter records each generation's shutdown output, one line per run, so a duplicate or a missing shutdown is visible.
+type shutdownCounter struct {
+	mu    sync.Mutex
+	lines []string
+}
+
+func (c *shutdownCounter) Write(data []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lines = append(c.lines, strings.TrimSpace(string(data)))
+	return len(data), nil
+}
+
+func (c *shutdownCounter) counts() map[string]int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	counts := map[string]int{}
+	for _, line := range c.lines {
+		counts[line]++
+	}
+	return counts
+}
+
+func TestLetGoOwnerRepeatedReloadsRetireEveryGenerationExactlyOnce(t *testing.T) {
+	dir := t.TempDir()
+	counter := &shutdownCounter{}
+	var forms, namespaces int
+	generations := 25
+	load := func(n int) *letGoSet {
+		path := filepath.Join(dir, "gen.cljc")
+		writeStartupFixtureFile(t, path, `(ns stress.entry (:require [pig.extension :as ext] [stress.helper :as helper]))
+(def state (atom 0))
+(defn init [api]
+  (ext/register-command! api {:name "tick" :handler (fn [ctx args] (swap! state inc))})
+  (ext/register-tool! api {:name "t" :parameters {:type "object"} :execute (fn [args] {:content (helper/label)})}))
+(defn shutdown [api] (println "generation-`+strconv.Itoa(n)+`"))
+`)
+		writeStartupFixtureFile(t, filepath.Join(dir, "stress", "helper.cljc"), `(ns stress.helper) (defn label [] "label")`)
+		loaded, err := letgo.Load(t.Context(), letgo.LoadOptions{Entrypoint: path, Identity: extension.Extension{Name: "stress", Path: path}, Streams: letgo.Streams{Stdout: counter}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &letGoSet{loaded: []*letgo.Loaded{loaded}, positions: []int{0}}
+	}
+	owner := newLetGoOwner(load(0))
+	runner := inproc.NewRunner(interleaveLetGo(nil, owner.current), dir)
+	if err := owner.attach(t.Context(), runner); err != nil {
+		t.Fatal(err)
+	}
+	for n := 1; n <= generations; n++ {
+		// Overlap: a callback runs on the current generation while the next one stages and publishes.
+		if !runner.ExecuteCommand(t.Context(), "tick", "") {
+			t.Fatalf("generation %d: command not handled", n-1)
+		}
+		owner.mu.Lock()
+		owner.staged = load(n)
+		owner.mu.Unlock()
+		next := inproc.NewRunner(owner.merge(nil), dir)
+		runner.Invalidate("reloaded")
+		if err := owner.attach(t.Context(), next); err != nil {
+			t.Fatal(err)
+		}
+		runner = next
+		if n == 5 {
+			forms, namespaces = lifetimeSnapshotForCLI()
+		}
+	}
+	if err := owner.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	runner.Invalidate("done")
+	counts := counter.counts()
+	for n := 0; n <= generations; n++ {
+		if got := counts["generation-"+strconv.Itoa(n)]; got != 1 {
+			t.Errorf("generation %d ran shutdown %d times", n, got)
+		}
+	}
+	if len(counts) != generations+1 {
+		t.Errorf("shutdown lines %v", counts)
+	}
+	// Past warm-up, 20 more generations added no form sources and no namespaces to the process.
+	if gotForms, gotNamespaces := lifetimeSnapshotForCLI(); gotForms != forms || gotNamespaces != namespaces {
+		t.Errorf("form sources %d (after 5 generations %d), namespaces %d (%d)", gotForms, forms, gotNamespaces, namespaces)
+	}
+}
+
+// lifetimeSnapshotForCLI reads the interpreter's process-wide form-source table and namespace registry.
+func lifetimeSnapshotForCLI() (forms, namespaces int) {
+	return vm.FormSource.Len(), len(rt.AllNSes())
 }

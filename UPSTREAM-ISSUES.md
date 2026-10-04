@@ -137,3 +137,39 @@ The second error has a nested EOF cause. Expected: the multi-form API rejects th
 **Source evidence:** `compiler.Context.CompileMultiple` calls `isErrorEOF` on the reader error and breaks even when EOF is nested inside a syntax error. The pinned `read-all-string` primitive explicitly distinguishes these cases and propagates mid-form errors.
 
 **PiG disposition:** `Generation.RunSource` validates source with the pinned strict `read-all-string` reader before compiling/evaluating forms. This parses twice and is a deliberate correctness cost until the multi-form compiler rejects incomplete forms. `TestLoadToolRegistrationAndSourceErrors` failed when the malformed source began returning success, and passes with the strict pre-read. No dependency patch or weaker assertion is used.
+
+## LG-4: `vm.FormSource` never evicts and pins every parsed form
+
+**Upstream:** [nooga/let-go](https://github.com/nooga/let-go), `v1.12.2`.
+
+**Status:** Reproduced unbounded retention. No upstream issue has been filed. Upstream documents the cause and offers `Reset`.
+
+Compile any source repeatedly in one process and watch the table grow:
+
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/nooga/let-go/pkg/api"
+    "github.com/nooga/let-go/pkg/vm"
+)
+
+func main() {
+    for i := 0; i < 3; i++ {
+        r, err := api.NewLetGo("repro")
+        if err != nil { panic(err) }
+        _, _ = r.Run("(defn f [x] (let [a (inc x)] (* a 2)))")
+        fmt.Println("FormSource.Len =", vm.FormSource.Len())
+    }
+}
+```
+
+The count rises on every round and never falls. Each entry is keyed by the parsed `*List` or `*Cons` and so keeps that form, and what it references, alive. The `FormSource.Reset` documentation states the map "never evicts" and tells callers that re-compile in a loop to reset it between rounds.
+
+**Measured in PiG:** one representative extension (helpers, a tool, a command, an event handler) left about 190 entries per generation. Over 300 load-and-close cycles the live heap after garbage collection grew from 7.1 MiB to 32.2 MiB, about 84 KiB per generation.
+
+**Source evidence:** `vm/source.go` declares `FormSource` as a process-wide map with `Set`, `Get`, `Len` and `Reset`, and nothing removes an entry. The compiler reads it only while compiling.
+
+**PiG disposition:** `releaseFormSources` in `coding/extension/host/letgo/host.go` calls `Reset` at the end of every serialized VM entry, when no compile is reading the table. Runtime errors take their locations from each chunk's own source map, not from this table. `TestLifetimeRepeatedGenerationsLeaveNoOwnedState` and `TestLifetimeHeapDoesNotGrowWithGenerations` fail when the call is disabled and pass with it. No dependency patch is used.
