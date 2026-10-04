@@ -151,5 +151,5 @@ func (l *Loaded) installContext() error {
 		return err
 	}
 	namespace.Def("signal-cancelled?", function)
-	return nil
+	return l.installUI()
 }

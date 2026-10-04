@@ -76740,6 +76740,17 @@
       "shapeHash": "sha256:6af1cd6889de8772da28bb1f2998d0262659331d5ba93f6bf1933b49a3efd5e9"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.installUI",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.installUI",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() error"
+      },
+      "shapeHash": "sha256:6af1cd6889de8772da28bb1f2998d0262659331d5ba93f6bf1933b49a3efd5e9"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.invoke",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.invoke",
@@ -76815,6 +76826,17 @@
         "type": "func(value github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
       },
       "shapeHash": "sha256:b6c656d5807b329935919c4440a04b445bfdd4ff7a1c9ef6f355165d86fe7d20"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.uiCall",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.uiCall",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(operation string, args ...github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:9b6bec9da8838dc9edc7d3d703698e822cefa2e0be5c5cd72f6d33fa09aff4a4"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#NewRuntimeHost",

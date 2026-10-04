@@ -24,6 +24,14 @@ Each function takes the callback handle.
 
 Native getters are called on each operation. Mutable model/tool data is not cached to fabricate live state. Conversion produces snapshots and retains native JSON field spelling. A snapshot is not a mutation channel into the Session. Unknown model representations and session managers without the native read methods fail explicitly. No width/height, raw Session, runner, terminal, or UI receiver is exposed. Simple UI actions and lifecycle event adapters are separate capabilities.
 
+## Simple UI actions
+
+The `pig.context` namespace provides `(notify! c message [kind])`, `(select! c title options)`, `(confirm! c title message)`, and `(input! c title [placeholder])`. Square brackets denote optional positional arguments, not vector syntax. `options` is a collection of strings. Notification kind defaults to `"info"`; input placeholder defaults to the empty string. This subset does not expose dialog options, custom renderers, or a native UI receiver.
+
+Each operation validates the context and delegates to the current native UI binding. Dialog calls wait for the native response and propagate its error. The request context includes the coordinator's reentry marker, so a host that synchronously calls back into the interpreter receives `ErrReentrant` instead of deadlocking. Native no-UI bindings retain native results: select/input return the empty string and confirm returns false. The bridge does not fabricate another mode-specific fallback. An explicitly bound RPC or TUI UI remains the host's implementation.
+
+Callback-time `pig.extension/register-tool!` updates the shared native registry. After `Loaded.Bind` connects the builder to a live native context, registration also invokes the native tool-refresh action. A refresh failure reaches the callback but does not undo the registered tool. Replacement keeps the native first-registration order. Stale bindings reject registration.
+
 ## Execution and ownership
 
 The native caller waits for callback completion. All VM entry is coordinated. Reads execute on the callback worker, not the TUI input/render loop. The later startup/event integration must preserve that execution rule. Queued VM cancellation and pure interpreted CPU work retain the coordinator's documented cooperative semantics.
