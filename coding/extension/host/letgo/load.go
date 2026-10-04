@@ -94,6 +94,9 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	if err = generation.Def(ctx, "register-command!", loaded.registerCommand); err != nil {
 		return nil, loaded.phaseError("install", err)
 	}
+	if err = generation.Def(ctx, "on!", loaded.onEvent); err != nil {
+		return nil, loaded.phaseError("install", err)
+	}
 	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, string(source)) }); err != nil {
 		return nil, loaded.phaseError("load", err)
 	}

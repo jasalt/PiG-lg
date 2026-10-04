@@ -76762,6 +76762,17 @@
       "shapeHash": "sha256:a077bcdba6d7dc1142a9656c16301dcd7d2cd1d262d53d8bc11d9d23fd4050f7"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.onEvent",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.onEvent",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(event github.com/nooga/let-go/pkg/vm.Value, handler github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:801ee63dd1c7c07fb227d0e6770fca7014c00fc865b09df6c242c8c91977bdab"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.phaseError",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.phaseError",
@@ -76938,6 +76949,17 @@
       "shapeHash": "sha256:f253db07564d3f1b9d4553f4af970d268c2cdb2434f728e5ead33f3528b9459a"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#eventAdapter",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "eventAdapter",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "eventAdapter"
+      },
+      "shapeHash": "sha256:72cd80ecff244c05bb8dd49311937500b7c985af60ff2e077caa4a83f21429f9"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#fieldPath",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "fieldPath",
@@ -77046,6 +77068,28 @@
         "type": "func() any"
       },
       "shapeHash": "sha256:6b40cbb40507b7efce1d433d06fed509e653a5671897ef0381b72bf3dce3329e"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#lifecycleAdapter",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "lifecycleAdapter",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func[E any](name string, register func(*registrationBuilder, func(context.Context, E) error) error) eventAdapter"
+      },
+      "shapeHash": "sha256:7c868c78c58ded02bd30c78526d371049680629a171e8d68b6af4544abef5a4b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#lifecycleEvents",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "lifecycleEvents",
+      "kind": "variable",
+      "exported": false,
+      "shape": {
+        "type": "[]eventAdapter"
+      },
+      "shapeHash": "sha256:fa66a33316ead4d06f2ea267a6ade00fc65c7498103af59370f80a46b0e7e360"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#maxSafeInteger",

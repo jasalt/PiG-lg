@@ -18,6 +18,12 @@ The native command call waits for interpreted execution to finish. No detached w
 
 Source loading compiles and evaluates forms sequentially under the generation gate. The coordinator captures/restores the current namespace in addition to namespace registries and loaders. A strict reader pass rejects incomplete forms before the pinned multi-form compiler runs; see `UPSTREAM-ISSUES.md` LG-3 for the measured defect and its reproducible example.
 
+## Interpreted lifecycle events
+
+`(pig.extension/on! :session-start (fn [c event] ...))` registers an awaited native lifecycle handler. The exact public keywords are `:session-start`, `:session-shutdown`, `:agent-start`, `:agent-end`, and `:agent-settled`. The event data retains native JSON field names and type strings, including underscores in `event.type`. Unknown, namespaced, string-valued, and unsupported event names fail registration.
+
+The event table delegates to the corresponding typed `On<Event>` method. Handler order, dispatch snapshots, and error reporting belong to the native runner. A subscription registered from a callback applies to the next dispatch snapshot, not the dispatch in progress. Handler return values are ignored only for these native no-result events. Result-bearing events are not admitted by this table. Keep the generation alive through `session_shutdown` dispatch, then invalidate and close it.
+
 ## Integration evidence
 
 `Load` evaluates the selected source, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. These tests do not prove CLI integration. Runtime source routing, trust, reload, and Session retirement remain separate obligations. Full extension-tree regression remains a required acceptance gate.
