@@ -15,7 +15,7 @@ func TestLoadForTestCapturesInitRegistrationsWithoutSession(t *testing.T) {
  (defn init [api]
    (pig/register-tool! api {:name "first" :parameters {:type "object"} :execute (fn [p] {:content []})})
    (pig/register-tool! api {:name "second" :parameters {:type "object"} :execute (fn [p] {:content []})})
-   (pig/register-command! api {:name "where" :handler (fn [c args] (ctx/cwd c))})
+   (pig/register-command! api {:name "where" :handler (fn [c args] (when (nil? (ctx/cwd c)) (ctx/is-idle? c)))})
    (pig/on-event api :session-start (fn [e c] nil))
    (pig/on-event api :session-start (fn [e c] nil))
    (pig/on-event api :agent-end (fn [e c] nil)))`), 0o600); err != nil {

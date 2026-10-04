@@ -44,7 +44,7 @@ type Loaded struct {
 	latestSignal   *signalToken // accessed only under the generation's VM gate
 }
 
-// pig additive (D89): callback contexts are opaque interpreter values, not reflective Go contexts.
+// pig additive (D89): an invocationToken is the internal callback handle captured by context-map closures; it never reaches the interpreter itself.
 type invocationToken struct {
 	owner  *Loaded
 	ctx    context.Context
@@ -55,17 +55,23 @@ func (*invocationToken) String() string     { return "#<pig.context>" }
 func (*invocationToken) Type() vm.ValueType { return vm.AnyType }
 func (*invocationToken) Unbox() any         { return nil }
 
+// scopedFunction builds the callback's context map inside VM entry, so its snapshot reads run under the generation gate.
 type scopedFunction struct {
 	vm.Fn
-	owner *Loaded
-	token *invocationToken
+	owner     *Loaded
+	token     *invocationToken
+	arguments func(token *invocationToken, ctx vm.Value) []vm.Value
 }
 
-func (f scopedFunction) Invoke(args []vm.Value) (vm.Value, error) {
+func (f scopedFunction) Invoke([]vm.Value) (vm.Value, error) {
 	f.owner.current = f.token
 	f.token.active = true
 	defer func() { f.token.active = false; f.owner.current = nil }()
-	return f.Fn.Invoke(args)
+	ctx, err := f.owner.contextValue(f.token)
+	if err != nil {
+		return vm.NIL, err
+	}
+	return f.Fn.Invoke(f.arguments(f.token, ctx))
 }
 
 // Load evaluates one selected source, calls its init with the api capability map,
@@ -97,6 +103,10 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	}()
 	if _, err = generation.withVM(ctx, func() (vm.Value, error) { return vm.NIL, loaded.installContext() }); err != nil {
 		return nil, loaded.phaseError("install context", err)
+	}
+	// The pig.context wrappers run first so the generation is back in pig.extension before the source loads.
+	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, contextFacade) }); err != nil {
+		return nil, loaded.phaseError("install", err)
 	}
 	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, extensionFacade) }); err != nil {
 		return nil, loaded.phaseError("install", err)
@@ -195,11 +205,11 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 		if err != nil {
 			return nil, l.phaseError("tool arguments", err)
 		}
-		result, err := l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value {
+		result, err := l.invokeScoped(ctx, callback, func(token *invocationToken, callbackContext vm.Value) []vm.Value {
 			if !contextual {
 				return []vm.Value{arguments}
 			}
-			return []vm.Value{arguments, &toolUpdate{owner: l, token: token, update: updateCallback(onUpdate)}, &signalToken{owner: l, context: token, signal: ctx}, token}
+			return []vm.Value{arguments, &toolUpdate{owner: l, token: token, update: updateCallback(onUpdate)}, &signalToken{owner: l, context: token, signal: ctx}, callbackContext}
 		})
 		if err != nil {
 			return nil, l.phaseError("execute tool "+definition.Name, err)
@@ -276,18 +286,22 @@ func (u *toolUpdate) Invoke(args []vm.Value) (vm.Value, error) {
 
 // invoke calls a command callback as (ctx args).
 func (l *Loaded) invoke(ctx context.Context, callback vm.Fn, payload vm.Value) (vm.Value, error) {
-	return l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value { return []vm.Value{token, payload} })
+	return l.invokeScoped(ctx, callback, func(_ *invocationToken, callbackContext vm.Value) []vm.Value {
+		return []vm.Value{callbackContext, payload}
+	})
 }
 
 // invokeEvent calls an event handler as (event ctx), the Kmet-compatible order.
 func (l *Loaded) invokeEvent(ctx context.Context, callback vm.Fn, event vm.Value) (vm.Value, error) {
-	return l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value { return []vm.Value{event, token} })
+	return l.invokeScoped(ctx, callback, func(_ *invocationToken, callbackContext vm.Value) []vm.Value {
+		return []vm.Value{event, callbackContext}
+	})
 }
 
-func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token *invocationToken) []vm.Value) (vm.Value, error) {
+func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token *invocationToken, callbackContext vm.Value) []vm.Value) (vm.Value, error) {
 	token := &invocationToken{owner: l, ctx: ctx}
 	return guardedValue(func() (vm.Value, error) {
-		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, arguments(token))
+		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token, arguments: arguments}, nil)
 	})
 }
 

@@ -3,7 +3,6 @@ package letgo
 import (
 	"fmt"
 
-	"github.com/nooga/let-go/pkg/rt"
 	"github.com/nooga/let-go/pkg/vm"
 )
 
@@ -41,7 +40,11 @@ func (l *Loaded) uiCall(operation string, args ...vm.Value) (vm.Value, error) {
 			argument = "info"
 		}
 		if len(args) == 3 {
-			if err := decodeValue(args[2], &argument); err != nil {
+			value := args[2]
+			if keyword, ok := value.(vm.Keyword); ok && operation == "notify!" {
+				value = vm.String(keyword) // Kmet passes the level as a keyword (:info); the native level is its name.
+			}
+			if err := decodeValue(value, &argument); err != nil {
 				return vm.NIL, l.phaseError("UI "+operation, err)
 			}
 		}
@@ -60,16 +63,4 @@ func (l *Loaded) uiCall(operation string, args ...vm.Value) (vm.Value, error) {
 		return vm.NIL, l.phaseError("UI "+operation, err)
 	}
 	return publicValue(result)
-}
-
-func (l *Loaded) installUI() error {
-	namespace := rt.NS("pig.context")
-	for _, operation := range []string{"notify!", "select!", "confirm!", "input!"} {
-		function, err := vm.NativeFnType.Box(func(args ...vm.Value) (vm.Value, error) { return l.uiCall(operation, args...) })
-		if err != nil {
-			return err
-		}
-		namespace.Def(operation, function)
-	}
-	return nil
 }

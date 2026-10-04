@@ -151,7 +151,7 @@ func TestUIAvailabilityCancellationAndStaleContext(t *testing.T) {
 	}
 	runner.Invalidate("replacement")
 	title, _ := toValue("stale")
-	if _, err := loaded.uiCall("input!", saved, title); !errors.Is(err, extension.ErrStaleContext) {
+	if _, err := loaded.uiCall("input!", contextToken(t, saved), title); !errors.Is(err, extension.ErrStaleContext) {
 		t.Fatalf("stale %v", err)
 	}
 }

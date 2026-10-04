@@ -18,6 +18,22 @@ import (
 	codingagent "github.com/MichaelKinsy/PiG/internal/codingagent"
 )
 
+// contextClosure returns one host-backed closure from a callback context map, as a retained Clojure reference would hold it.
+func contextClosure(t *testing.T, ctx vm.Value, key string) *contextFunction {
+	t.Helper()
+	closure, ok := ctx.(vm.Lookup).ValueAt(vm.Keyword(key)).(*contextFunction)
+	if !ok {
+		t.Fatalf("context %v has no %s closure", ctx, key)
+	}
+	return closure
+}
+
+// contextToken returns the internal callback handle a context map's closures capture.
+func contextToken(t *testing.T, ctx vm.Value) *invocationToken {
+	t.Helper()
+	return contextClosure(t, ctx, "is-idle").token
+}
+
 func TestContextReadsNativeValuesAndRetainsHandle(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.context.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def saved (atom nil))
@@ -65,7 +81,7 @@ func TestContextReadsNativeValuesAndRetainsHandle(t *testing.T) {
 		t.Fatal(err)
 	}
 	runner.Invalidate("replacement")
-	if _, err := loaded.contextRead("cwd", saved); !errors.Is(err, extension.ErrStaleContext) {
+	if _, err := contextClosure(t, saved, "is-idle").Invoke(nil); !errors.Is(err, extension.ErrStaleContext) {
 		t.Fatalf("stale: %v", err)
 	}
 }
@@ -89,10 +105,11 @@ func TestContextRequestAndRunCancellationAreDistinct(t *testing.T) {
 	defer abort()
 	request, cancelRequest := context.WithCancel(t.Context())
 	runner.ExecuteCommand(request, "capture", "")
-	saved, err := loaded.generation.Run(t.Context(), `(deref pig.cancel.fixture/saved)`)
+	savedContext, err := loaded.generation.Run(t.Context(), `(deref pig.cancel.fixture/saved)`)
 	if err != nil {
 		t.Fatal(err)
 	}
+	saved := contextToken(t, savedContext)
 	signal, err := loaded.generation.Run(t.Context(), `(deref pig.cancel.fixture/signal)`)
 	if err != nil {
 		t.Fatal(err)
