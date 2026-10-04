@@ -113,6 +113,9 @@ func (l *Loaded) contextRead(operation string, value vm.Value) (vm.Value, error)
 			data = extension.ModelInfo(model)
 		case ai.AnyModel:
 			data = extension.AnyModelInfo(model)
+		case map[string]any:
+			// Interactive mode supplies the model already projected to the extension-facing shape.
+			data = model
 		default:
 			err = fmt.Errorf("unsupported native model %T", model)
 		}
@@ -166,7 +169,11 @@ func (l *Loaded) contextValue(token *invocationToken) (vm.Value, error) {
 		if bound {
 			var err error
 			if value, err = l.contextRead(operation, token); err != nil {
-				return vm.NIL, err
+				// An unreadable model snapshot must not fail every callback; the other keys still describe the context.
+				if key != "model" {
+					return vm.NIL, err
+				}
+				value = vm.NIL
 			}
 		}
 		ctx = ctx.Assoc(vm.Keyword(key), value).(*vm.PersistentMap)

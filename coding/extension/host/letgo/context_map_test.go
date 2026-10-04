@@ -118,3 +118,34 @@ func TestContextMapUINotifyAcceptsKmetKeywordLevel(t *testing.T) {
 		t.Fatalf("notifications %q, want %q", ui.notifications, want)
 	}
 }
+
+func TestContextMapAcceptsAProjectedMapModelAndSurvivesAnUnsupportedOne(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		model extension.Model
+		want  any
+	}{
+		{"projected map as interactive mode supplies", map[string]any{"id": "interactive-model", "contextWindow": 1000}, "interactive-model"},
+		{"unsupported shape", 42, nil},
+		{"none", nil, nil},
+	} {
+		loaded := loadToolSource(t, contextMapFixture)
+		runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
+		runner.BindCore(extension.ExtensionActions{}, extension.ContextActions{GetModel: func() extension.Model { return test.model }}, nil)
+		if !runner.ExecuteCommand(t.Context(), "capture", "") {
+			t.Fatalf("%s: the callback did not run", test.name)
+		}
+		value, err := loaded.generation.Run(t.Context(), `(deref pig.map.fixture/plain)`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := fromValue(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if id := got.(map[string]any)["model-id"]; id != test.want {
+			t.Errorf("%s: model id %v, want %v", test.name, id, test.want)
+		}
+		runner.Invalidate("test complete")
+	}
+}
