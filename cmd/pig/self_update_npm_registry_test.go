@@ -305,7 +305,15 @@ func isolatedNpmBin(t *testing.T, nodeExec, work string) string {
 		cli = resolved
 	}
 	if _, err := os.Stat(cli); err != nil {
-		t.Fatalf("npm's CLI script is not beside node: %v", err)
+		// Split installations can expose npm on PATH without placing it beside process.execPath. Accept only npm's actual CLI script, never execute a version-manager wrapper.
+		if npm, lookupErr := exec.LookPath("npm"); lookupErr == nil {
+			if resolved, resolveErr := filepath.EvalSymlinks(npm); resolveErr == nil && filepath.Base(resolved) == "npm-cli.js" {
+				cli = resolved
+			}
+		}
+	}
+	if _, err := os.Stat(cli); err != nil {
+		t.Fatalf("cannot locate installed npm CLI script: %v", err)
 	}
 	bin := filepath.Join(work, "toolchain-bin")
 	if err := os.MkdirAll(bin, 0o755); err != nil {
