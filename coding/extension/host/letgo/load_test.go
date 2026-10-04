@@ -48,6 +48,16 @@ func TestLoadToolFixtureUsesNativeRunnerAfterLoad(t *testing.T) {
 	}()
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
+	if !runner.ExecuteCommand(t.Context(), "hello", "fixture args") {
+		t.Fatal("fixture command not handled")
+	}
+	value, err := loaded.generation.Run(t.Context(), `(deref pig.fixture.tool/command-arguments)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := fromValue(value); err != nil || got != "fixture args" {
+		t.Fatalf("fixture command args=%v, err=%v", got, err)
+	}
 	tools := runner.Tools()
 	if len(tools) != 2 || tools[0].Definition.Name != "hello" || tools[1].Definition.Name != "other" || tools[0].SourceInfo != "fixture-source" {
 		t.Fatalf("tools %#v", tools)

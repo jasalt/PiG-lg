@@ -7,10 +7,12 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/nooga/let-go/pkg/api"
+	"github.com/nooga/let-go/pkg/compiler"
 	"github.com/nooga/let-go/pkg/rt"
 	"github.com/nooga/let-go/pkg/vm"
 )
@@ -65,6 +67,7 @@ type Generation struct {
 	run          *api.LetGo
 	loader       rt.NSLoader
 	names        map[string]*vm.Namespace
+	currentNS    vm.Value
 	stdoutHandle vm.Value
 	stderrHandle vm.Value
 	scope        atomic.Pointer[vmScope]
@@ -131,8 +134,10 @@ func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths
 		return nil, err
 	}
 	defer h.leave()
+	previousNS := rt.CurrentNS.Deref()
 	h.swap(nil, h.baseLoader)
 	defer func() {
+		rt.CurrentNS.SetRoot(previousNS)
 		h.active = h.capture()
 		h.swap(nil, h.baseLoader)
 	}()
@@ -141,7 +146,7 @@ func (h *RuntimeHost) NewGeneration(ctx context.Context, namespace string, paths
 		return nil, err
 	}
 	run.SetLoadPath(paths)
-	g := &Generation{host: h, run: run, loader: rt.GetNSLoader(), names: h.capture()}
+	g := &Generation{host: h, run: run, loader: rt.GetNSLoader(), names: h.capture(), currentNS: rt.CurrentNS.Deref()}
 	if options.Stdout != nil {
 		g.stdoutHandle = vm.NewBoxed(rt.NewWriterHandle("letgo.Stdout", options.Stdout))
 	}
@@ -160,12 +165,16 @@ func (g *Generation) withVM(ctx context.Context, call func() (vm.Value, error)) 
 		return vm.NIL, ErrClosed
 	}
 	g.host.swap(g.names, g.loader)
+	previousNS := rt.CurrentNS.Deref()
+	rt.CurrentNS.SetRoot(g.currentNS)
 	scope := &vmScope{host: g.host}
 	scope.active.Store(true)
 	g.scope.Store(scope)
 	defer func() {
 		scope.active.Store(false)
 		g.scope.Store(nil)
+		g.currentNS = rt.CurrentNS.Deref()
+		rt.CurrentNS.SetRoot(previousNS)
 		g.names = g.host.capture()
 		g.host.active = g.names
 		g.host.swap(nil, g.host.baseLoader)
@@ -194,25 +203,44 @@ func (g *Generation) Run(ctx context.Context, source string) (vm.Value, error) {
 	return g.withVM(ctx, func() (vm.Value, error) { return g.run.Run(source) })
 }
 
+// RunSource compiles and evaluates each file form in order, so namespace and require effects precede later compilation.
+func (g *Generation) RunSource(ctx context.Context, source string) (vm.Value, error) {
+	return g.withVM(ctx, func() (vm.Value, error) {
+		return g.withOutput(func() (vm.Value, error) {
+			// The pinned multi-form compiler treats mid-form EOF as clean EOF. Validate with its strict reader before any source effects run.
+			reader := rt.LookupCoreVar("read-all-string").Deref().(vm.Fn)
+			if _, err := reader.Invoke([]vm.Value{vm.String(source)}); err != nil {
+				return vm.NIL, err
+			}
+			c := compiler.NewTransientCompiler(vm.NewConsts(), rt.CurrentNS.Deref().(*vm.Namespace))
+			_, result, err := c.CompileMultiple(strings.NewReader(source))
+			return result, err
+		})
+	})
+}
+
 // Invoke calls a retained interpreted function in its originating generation.
-// It restores the generation's output bindings because vm.Fn.Invoke bypasses
-// api.Run's per-evaluation binding scope.
+// It restores the generation's output bindings because vm.Fn.Invoke bypasses api.Run's per-evaluation binding scope.
 func (g *Generation) Invoke(ctx context.Context, fn vm.Fn, args []vm.Value) (vm.Value, error) {
 	return g.withVM(ctx, func() (vm.Value, error) {
-		if g.stdoutHandle != nil {
-			if out := rt.LookupCoreVar("*out*"); out != nil {
-				out.PushBinding(g.stdoutHandle)
-				defer out.PopBinding()
-			}
-		}
-		if g.stderrHandle != nil {
-			if stderr := rt.LookupCoreVar("*err*"); stderr != nil {
-				stderr.PushBinding(g.stderrHandle)
-				defer stderr.PopBinding()
-			}
-		}
-		return fn.Invoke(args)
+		return g.withOutput(func() (vm.Value, error) { return fn.Invoke(args) })
 	})
+}
+
+func (g *Generation) withOutput(call func() (vm.Value, error)) (vm.Value, error) {
+	if g.stdoutHandle != nil {
+		if out := rt.LookupCoreVar("*out*"); out != nil {
+			out.PushBinding(g.stdoutHandle)
+			defer out.PopBinding()
+		}
+	}
+	if g.stderrHandle != nil {
+		if stderr := rt.LookupCoreVar("*err*"); stderr != nil {
+			stderr.PushBinding(g.stderrHandle)
+			defer stderr.PopBinding()
+		}
+	}
+	return call()
 }
 
 // Close prevents new callbacks after earlier calls have left the VM. It does
@@ -224,6 +252,7 @@ func (g *Generation) Close(ctx context.Context) error {
 	defer g.host.leave()
 	g.closed = true
 	g.names = nil
+	g.currentNS = nil
 	g.run = nil
 	g.loader = nil
 	return nil

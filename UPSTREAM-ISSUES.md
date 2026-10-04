@@ -90,4 +90,50 @@ Control: pass `(do (def first 1) (throw (ex-info "trailing form ran" {})))`. The
 
 **Expected contract to confirm:** A single-expression API can reject non-comment trailing forms or explicitly document that it ignores them. A source-evaluation API must evaluate every form and propagate the trailing error.
 
-**PiG disposition:** The source loader submits all authored forms inside one `do` expression. The unwrapped call caused PiG's multi-form tool fixture to register no tools because its first form was only a namespace declaration. That loader mistake is fixed in PiG; it is not itself an upstream bug.
+**PiG disposition:** The source loader uses `compiler.CompileMultiple` under the generation coordinator. It compiles and evaluates forms sequentially, so namespace and require effects precede later compilation. Wrapping forms in `api.Run("(do ...)")` is not a source-loader equivalent: that API compiles the entire expression before evaluating its namespace effects. The initial unwrapped call registered no tools because the first form was only a namespace declaration. These source-loader mistakes are fixed in PiG; they are not themselves upstream bugs.
+
+## LG-3: `CompileMultiple` silently accepts EOF inside an unfinished form
+
+**Upstream:** [nooga/let-go](https://github.com/nooga/let-go), `v1.12.2`.
+
+**Status:** Reproduced parser error suppression. No upstream issue has been filed.
+
+Run this program from the pinned PiG module:
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+
+    "github.com/nooga/let-go/pkg/api"
+    "github.com/nooga/let-go/pkg/compiler"
+    "github.com/nooga/let-go/pkg/rt"
+    "github.com/nooga/let-go/pkg/vm"
+)
+
+func main() {
+    r, err := api.NewLetGo("repro")
+    if err != nil { panic(err) }
+    source := "(def incomplete"
+    c := compiler.NewTransientCompiler(vm.NewConsts(), rt.CurrentNS.Deref().(*vm.Namespace))
+    _, _, err = c.CompileMultiple(strings.NewReader(source))
+    fmt.Printf("CompileMultiple error=%v\n", err)
+    _, err = r.Run(source)
+    fmt.Printf("api.Run error=%v\n", err)
+}
+```
+
+Actual output begins:
+
+```text
+CompileMultiple error=<nil>
+api.Run error=Syntax error reading source at (<default>:1:16).
+```
+
+The second error has a nested EOF cause. Expected: the multi-form API rejects the unfinished list as well. EOF between complete forms is valid; EOF inside a form is not.
+
+**Source evidence:** `compiler.Context.CompileMultiple` calls `isErrorEOF` on the reader error and breaks even when EOF is nested inside a syntax error. The pinned `read-all-string` primitive explicitly distinguishes these cases and propagates mid-form errors.
+
+**PiG disposition:** `Generation.RunSource` validates source with the pinned strict `read-all-string` reader before compiling/evaluating forms. This parses twice and is a deliberate correctness cost until the multi-form compiler rejects incomplete forms. `TestLoadToolRegistrationAndSourceErrors` failed when the malformed source began returning success, and passes with the strict pre-read. No dependency patch or weaker assertion is used.

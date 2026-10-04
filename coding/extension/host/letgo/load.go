@@ -86,7 +86,10 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	if err = generation.Def(ctx, "register-tool!", loaded.registerTool); err != nil {
 		return nil, loaded.phaseError("install", err)
 	}
-	if _, err = guardedValue(func() (vm.Value, error) { return generation.Run(ctx, "(do\n"+string(source)+"\n)") }); err != nil {
+	if err = generation.Def(ctx, "register-command!", loaded.registerCommand); err != nil {
+		return nil, loaded.phaseError("install", err)
+	}
+	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, string(source)) }); err != nil {
 		return nil, loaded.phaseError("load", err)
 	}
 	loaded.Extension, err = loaded.registrations.snapshot()
@@ -152,10 +155,7 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 		if err != nil {
 			return nil, l.phaseError("tool arguments", err)
 		}
-		token := &invocationToken{ctx: ctx}
-		result, err := guardedValue(func() (vm.Value, error) {
-			return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, []vm.Value{token, arguments})
-		})
+		result, err := l.invoke(ctx, callback, arguments)
 		if err != nil {
 			return nil, l.phaseError("execute tool "+definition.Name, err)
 		}
@@ -167,6 +167,43 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	}
 	if err := l.registrations.RegisterTool(definition); err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
+	}
+	return vm.NIL, nil
+}
+
+func (l *Loaded) invoke(ctx context.Context, callback vm.Fn, payload vm.Value) (vm.Value, error) {
+	token := &invocationToken{ctx: ctx}
+	return guardedValue(func() (vm.Value, error) {
+		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, []vm.Value{token, payload})
+	})
+}
+
+// pig additive (D89): commands register through the typed native subset and reuse generation-owned invocation.
+func (l *Loaded) registerCommand(name, value vm.Value) (vm.Value, error) {
+	if _, err := l.callbackContext(); err != nil {
+		return vm.NIL, err
+	}
+	var commandName string
+	if err := decodeValue(name, &commandName); err != nil {
+		return vm.NIL, l.phaseError("register command name", err)
+	}
+	callback, data, err := callbackField(value, "handler")
+	if err != nil {
+		return vm.NIL, l.phaseError("register command", err)
+	}
+	var options extension.CommandOptions
+	if err := decodeValue(data, &options); err != nil {
+		return vm.NIL, l.phaseError("register command", err)
+	}
+	options.Handler = func(ctx context.Context, args string) error {
+		_, err := l.invoke(ctx, callback, vm.String(args))
+		if err != nil {
+			return l.phaseError("execute command "+commandName, err)
+		}
+		return nil
+	}
+	if err := l.registrations.RegisterCommand(commandName, options); err != nil {
+		return vm.NIL, l.phaseError("register command", err)
 	}
 	return vm.NIL, nil
 }

@@ -1,6 +1,12 @@
 (ns pig.fixture.tool
   (:require [pig.extension :as pig]))
 
+(def command-arguments (atom nil))
+(pig/register-command!
+  "hello"
+  {:description "Record the exact command arguments"
+   :handler (fn [c args] (reset! command-arguments args))})
+
 (pig/register-tool!
   {:name "hello"
    :description "Say hello"

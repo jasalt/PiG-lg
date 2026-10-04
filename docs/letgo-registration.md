@@ -10,6 +10,14 @@ The loader must bind the live native runner guard and Session tool-refresh actio
 
 The existing MCP construction path remains unchanged. No MCP-specific notifications or cached event contexts are used by this builder.
 
+## Interpreted commands
+
+The selected source can call `(pig.extension/register-command! "name" {:description "Description" :handler (fn [c args] ...)})`. The handler receives an opaque callback token and the exact native argument string. The runner resolves conflicts and reports interpreted handler errors through its normal error listeners. Re-registering a command during loading replaces it without moving its first-registration position. Source metadata remains native registration metadata.
+
+The native command call waits for interpreted execution to finish. No detached work is started. Cancellation while waiting for VM entry returns the original context error. Pure interpreted CPU work remains cooperative. Closing the generation drains VM entry and prevents later calls. Normal CLI-mode dispatch requires startup integration; internal runner tests alone do not prove it.
+
+Source loading compiles and evaluates forms sequentially under the generation gate. The coordinator captures/restores the current namespace in addition to namespace registries and loaders. A strict reader pass rejects incomplete forms before the pinned multi-form compiler runs; see `UPSTREAM-ISSUES.md` LG-3 for the measured defect and its reproducible example.
+
 ## Integration evidence
 
 `Load` evaluates the selected source, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. These tests do not prove CLI integration. Runtime source routing, trust, reload, and Session retirement remain separate obligations. Full extension-tree regression remains a required acceptance gate.
