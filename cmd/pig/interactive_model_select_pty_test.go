@@ -30,7 +30,7 @@ func TestInteractiveModelSelectionEmitsOneModelSelectEach(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"--no-extensions", "--no-skills", "--no-prompt-templates", "--no-approve", "--session-dir", filepath.Join(home, "sessions"), "-e", fixture}
+	args := []string{"--no-extensions", "--no-skills", "--no-prompt-templates", "--no-approve", "--session-dir", filepath.Join(home, "sessions"), "-e", fixture, "-e", ptyStartupProbe(t)}
 	seedFirstRunDone(t, filepath.Join(home, "agent"))
 	master, slave := openPTY(t, 40, 140)
 	t.Cleanup(func() { _ = master.Close() })
@@ -56,6 +56,10 @@ func TestInteractiveModelSelectionEmitsOneModelSelectEach(t *testing.T) {
 		if _, err := master.Write([]byte(text)); err != nil {
 			t.Fatal(err)
 		}
+	}
+	output.waitQuiet(0, []byte(ptyStartupMarker), 500*time.Millisecond, testbudget.Wait(t))
+	if !bytes.Contains(output.since(0), []byte(ptyStartupMarker)) {
+		t.Fatalf("session startup never completed; screen tail: %q", tail(output.since(0), 1500))
 	}
 	output.waitQuiet(0, []byte("probe-model"), 500*time.Millisecond, testbudget.Wait(t))
 	if !bytes.Contains(output.since(0), []byte("probe-model")) {

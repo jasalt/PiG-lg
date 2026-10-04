@@ -138,7 +138,7 @@ func startSpriteSession(t *testing.T, binary, pigHome, agentDir string, args ...
 	t.Helper()
 	seedFirstRunDone(t, agentDir)
 	master, slave := openPTY(t, 30, 120)
-	cmd := exec.Command(binary, append(args, "--model", "test-faux/faux-1")...)
+	cmd := exec.Command(binary, append(args, "--model", "test-faux/faux-1", "-e", ptyStartupProbe(t))...)
 	cmd.Dir = t.TempDir()
 	cmd.Env = append(os.Environ(), "PIG_HOME="+pigHome, "PIG_CODING_AGENT_DIR="+agentDir, "PIG_TEST_FAUX=1",
 		"PIG_TEST_FAUX_SCENARIO=parity-basic", "TERM=xterm-256color", "COLORTERM=truecolor")
@@ -156,6 +156,7 @@ func startSpriteSession(t *testing.T, binary, pigHome, agentDir string, args ...
 		<-s.exited
 		_ = master.Close()
 	})
+	s.await("waiting for session startup", 0, ptyStartupMarker)
 	return s
 }
 
