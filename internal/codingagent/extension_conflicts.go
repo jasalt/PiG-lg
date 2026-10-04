@@ -60,24 +60,8 @@ func DetectExtensionConflicts(exts []extension.Extension) []ExtensionConflict {
 	return conflicts
 }
 
-// toolNamesInRegistrationOrder returns Tools keys in ToolOrder order, the Go form of upstream's insertion-ordered ext.tools Map. Keys absent from ToolOrder follow by name.
+// toolNamesInRegistrationOrder returns the tool names in registration order, the Go form of upstream's insertion-ordered ext.tools Map.
+// It reads the extension's runtime tool registry, so tools an in-process extension registered through it count as well as the Tools map.
 func toolNamesInRegistrationOrder(ext extension.Extension) []string {
-	names := make([]string, 0, len(ext.Tools))
-	seen := make(map[string]struct{}, len(ext.Tools))
-	for _, name := range ext.ToolOrder {
-		if _, ok := ext.Tools[name]; !ok {
-			continue
-		}
-		if _, duplicate := seen[name]; duplicate {
-			continue
-		}
-		seen[name] = struct{}{}
-		names = append(names, name)
-	}
-	for _, name := range slices.Sorted(maps.Keys(ext.Tools)) {
-		if _, ok := seen[name]; !ok {
-			names = append(names, name)
-		}
-	}
-	return names
+	return ext.RegisteredToolNames()
 }

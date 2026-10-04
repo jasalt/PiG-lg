@@ -63,10 +63,9 @@ func (b *cliRuntimeBuilder) printHost(build *cliBuild, startup *printStartup) pr
 				build.Host.Invalidate(message)
 			}
 		},
+		Bind: build.bindExtensions,
 		Release: func(reason string) {
-			if build.Host != nil {
-				build.Host.Shutdown(reason)
-			}
+			build.retireExtensions(reason)
 			build.Services.Close()
 		},
 	}

@@ -241,6 +241,12 @@ func extensionSourcePaths(config ExtConfig) (path, resolvedPath string) {
 	return path, resolvedPath
 }
 
+// SourcePaths returns the path the user selected for this config and its absolute form: the identity an extension loaded from it carries.
+func (c ExtConfig) SourcePaths() (path, resolvedPath string) { return extensionSourcePaths(c) }
+
+// Origin names the config's source in load diagnostics.
+func (c ExtConfig) Origin() string { return extConfigOrigin(c) }
+
 func extConfigOrigin(config ExtConfig) string {
 	if config.selectedPath != "" {
 		return config.selectedPath

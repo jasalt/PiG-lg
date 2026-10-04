@@ -24,6 +24,8 @@ type cliSessionInputs struct {
 	Host *subprocess.Host
 	// Invalidate makes the build's extension host reject every later call of the replaced Session's extension processes, which outlive the replacement while a command handler runs.
 	Invalidate func(message string)
+	// Bind connects the build's interpreted extensions to the Session's runner after the Session bound its actions. Nil when there are none.
+	Bind func(ctx context.Context, runner *inproc.Runner) error
 	// Release retires the build's extension host and services. It runs after the replaced Session shut down and its command handlers returned.
 	Release func(reason string)
 }
@@ -137,6 +139,14 @@ func (f *cliSessionFactory[S]) create(ctx context.Context, options coding.Create
 		_ = low.Close()
 		release("construct session failed")
 		return coding.CreateAgentSessionRuntimeResult{}, err
+	}
+	if inputs.Bind != nil {
+		if err := inputs.Bind(f.ctx, session.ExtensionRunner()); err != nil {
+			_ = session.Close()
+			_ = low.Close()
+			release("bind interpreted extensions failed")
+			return coding.CreateAgentSessionRuntimeResult{}, err
+		}
 	}
 	f.mu.Lock()
 	f.states[session] = state

@@ -267,12 +267,18 @@ type startupExtensionSet struct {
 	host    *subprocess.Host
 	bridge  *subprocess.UIBridge
 	configs []subprocess.ExtConfig
+	// letGo holds the interpreted generations the startup build loaded, so every exit path retires them. Closing is idempotent.
+	letGo *letGoSet
 }
 
 func (s *startupExtensionSet) close() {
-	if s != nil && s.host != nil {
+	if s == nil {
+		return
+	}
+	if s.host != nil {
 		s.host.Shutdown("quit")
 	}
+	closeLetGo(s.letGo, "quit")
 }
 
 var stopStartupExtensions = func() {}

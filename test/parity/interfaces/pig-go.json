@@ -43366,6 +43366,28 @@
       "shapeHash": "sha256:af8be83f2bd2251e492c6b91ba388fd7356c2514002f8b192adb47dd271e0ba7"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#cliBuild.bindExtensions",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "cliBuild.bindExtensions",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, runner *github.com/MichaelKinsy/PiG/coding/extension/host/inproc.Runner) error"
+      },
+      "shapeHash": "sha256:3fca6bb951813dd3278d10a47c8a8e66388488e9c6fb692d9364bd993aa399ec"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#cliBuild.retireExtensions",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "cliBuild.retireExtensions",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(reason string)"
+      },
+      "shapeHash": "sha256:a91f5da78c7cf287305fc5d2791b56e167e37b6e8b76f09a87a1ea1d53f3ad45"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#cliBuild.skills",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "cliBuild.skills",
@@ -43804,6 +43826,17 @@
         "type": "func(registry *authContributionRegistry)"
       },
       "shapeHash": "sha256:eff9adf221c33919369cffc1125040efa576b2c37b43d9caf5ae22684dcf919f"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#closeLetGo",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "closeLetGo",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(set *letGoSet, reason string)"
+      },
+      "shapeHash": "sha256:bd19109957f6b4904ab540e56062432498320c0fb4919be5357f40f316c81f53"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#codemodeSettings",
@@ -45896,6 +45929,17 @@
       "shapeHash": "sha256:504138e4d58fe3a518003fb6f6bdb44ae43828838ba8566ddfcd78c9f45edd41"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#interleaveLetGo",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "interleaveLetGo",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(subprocessLoaded []github.com/MichaelKinsy/PiG/coding/extension.Extension, set *letGoSet) []github.com/MichaelKinsy/PiG/coding/extension.Extension"
+      },
+      "shapeHash": "sha256:eaf54e247daaeee838b36fd2835a4d42ff45df9b75a45affbff9b2d22e9c2887"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#invalidConfiguredPackageError",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "invalidConfiguredPackageError",
@@ -45938,6 +45982,17 @@
         "type": "func(lang string) bool"
       },
       "shapeHash": "sha256:20394ab6c0c134b86300166cff7ece2adb58372b84c2457148216c559d0af3ef"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#isLetGoConfig",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "isLetGoConfig",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(config github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig) bool"
+      },
+      "shapeHash": "sha256:8ff102434cae24c4f4106a736543fd3fb1ab80a4856e3468634542da4f9b59f3"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#isPinnedNpm",
@@ -46004,6 +46059,50 @@
         "type": "func(data []byte, version string) (string, error)"
       },
       "shapeHash": "sha256:d9ee32044f7e623a46d2f7fec70ffc60fbd680b844bca744fd2c2d191672a29a"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoSet",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "letGoSet"
+      },
+      "shapeHash": "sha256:dd7a7a9b32e236935a76ae6c743d7d74d3ed551e0871eea6d69b59058e275995"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet.Close",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoSet.Close",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context) error"
+      },
+      "shapeHash": "sha256:1308e2e58e033a63ea9692ed75c8c737d1759c4953f8048cc0018fe7148bf370"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet.bind",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoSet.bind",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, runner *github.com/MichaelKinsy/PiG/coding/extension/host/inproc.Runner) error"
+      },
+      "shapeHash": "sha256:3fca6bb951813dd3278d10a47c8a8e66388488e9c6fb692d9364bd993aa399ec"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet.empty",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoSet.empty",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() bool"
+      },
+      "shapeHash": "sha256:f632619397f10a7f0e472ad47d2824ec7e080d15ac9eb0994e24800757b3fb96"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#linkDiagnostics",
@@ -46125,6 +46224,17 @@
         "type": "func(ctx context.Context, cwd string, mode github.com/MichaelKinsy/PiG/coding/extension.ExtensionMode, registry *github.com/MichaelKinsy/PiG/internal/codingagent.ModelRegistry, configs []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig, embedded []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.EmbeddedCell, reloadConfigs func() []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig, preloaded *startupExtensionSet) ([]github.com/MichaelKinsy/PiG/coding/extension.Extension, *github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.Host, *github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.UIBridge, []error)"
       },
       "shapeHash": "sha256:9f2ba624f78ca838c97ba3a9a1ac82526c1b43fe3c6b66293cc7be2bb1e2a438"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#loadLetGoSet",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "loadLetGoSet",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, allConfigs []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig) (*letGoSet, []error)"
+      },
+      "shapeHash": "sha256:4072db86bd8df783a3dae91749fe9df0f8d5c7dc0615be99408a61ef1d639e6e"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#loadSkills",
@@ -51438,6 +51548,17 @@
         "type": "func(value string) []string"
       },
       "shapeHash": "sha256:b7f951ca71a0089eea0150b5b7d7dd07609688984fa9b73c0cb9c24adbf06565"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#splitLetGoConfigs",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "splitLetGoConfigs",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(configs []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig) (interpreted []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig, others []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig)"
+      },
+      "shapeHash": "sha256:2c4545ec243b6b93dbc42ada0785ffb5590cd7d15c5f96ab8418b76010fc0ba4"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#splitResourcePatterns",
@@ -66574,6 +66695,17 @@
         "type": "func(name string) (RegisteredTool, bool)"
       },
       "shapeHash": "sha256:326fb5e1ab557bdf46c9ca5da4c995663a12b7ba5d344571bff9983d35ecdc4b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension#Extension.RegisteredToolNames",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension",
+      "name": "Extension.RegisteredToolNames",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() []string"
+      },
+      "shapeHash": "sha256:9f921b0d645d262778fe26bdf2928fddc34adea94eefae075778b323fc6302de"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension#Extension.RegisteredTools",
@@ -82735,6 +82867,17 @@
       "shapeHash": "sha256:5f226cf3d4745907bc423b54f73320256a620fdeb4e97505b68a385cbf2f830f"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/subprocess#ExtConfig.Origin",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/subprocess",
+      "name": "ExtConfig.Origin",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() string"
+      },
+      "shapeHash": "sha256:31cac5b359d9888bdbe3fe08c486b2e404a728edce6e0aaaa60e59ceafc92fb5"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/subprocess#ExtConfig.ResolveError",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/subprocess",
       "name": "ExtConfig.ResolveError",
@@ -82755,6 +82898,17 @@
         "type": "func(path string) ExtConfig"
       },
       "shapeHash": "sha256:69919bf98bb17d4de6615b8c127a04b10421dfe19efcae53574f7b8c3fda4210"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/subprocess#ExtConfig.SourcePaths",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/subprocess",
+      "name": "ExtConfig.SourcePaths",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() (path string, resolvedPath string)"
+      },
+      "shapeHash": "sha256:c7dd51da81c4689357cdc6730354f9fee0e65ef7f483cf9bd086f1ed88747601"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/subprocess#ExtConfig.acceptsRegisteredName",

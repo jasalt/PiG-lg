@@ -113,10 +113,9 @@ func (b *cliRuntimeBuilder) rpcInputs(build *cliBuild, startup *rpcStartup) (cli
 				build.Host.Invalidate(message)
 			}
 		},
+		Bind: build.bindExtensions,
 		Release: func(reason string) {
-			if build.Host != nil {
-				build.Host.Shutdown(reason)
-			}
+			build.retireExtensions(reason)
 			build.Services.Close()
 		},
 	}, state

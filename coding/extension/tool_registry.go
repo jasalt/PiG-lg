@@ -65,6 +65,35 @@ func (e *Extension) RegisteredTool(name string) (RegisteredTool, bool) {
 	return tool, ok
 }
 
+// RegisteredToolNames returns the registry's tool names in registration order, then any remaining by name, including tools
+// registered after load. It reads the same state as RegisteredTools but returns the registry keys.
+func (e *Extension) RegisteredToolNames() []string {
+	tools, order := e.Tools, e.ToolOrder
+	if state := e.toolState; state != nil {
+		state.mu.RLock()
+		defer state.mu.RUnlock()
+		tools, order = state.tools, state.order
+	}
+	names := make([]string, 0, len(tools))
+	seen := make(map[string]struct{}, len(tools))
+	for _, name := range order {
+		if _, ok := tools[name]; !ok {
+			continue
+		}
+		if _, duplicate := seen[name]; duplicate {
+			continue
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+	for _, name := range slices.Sorted(maps.Keys(tools)) {
+		if _, ok := seen[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 // RegisteredTools returns an ordered snapshot, including tools registered after load.
 func (e *Extension) RegisteredTools() []RegisteredTool {
 	tools, order := e.Tools, e.ToolOrder

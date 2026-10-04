@@ -16,6 +16,7 @@ import (
 	"github.com/MichaelKinsy/PiG/ai"
 	"github.com/MichaelKinsy/PiG/coding"
 	"github.com/MichaelKinsy/PiG/coding/extension"
+	"github.com/MichaelKinsy/PiG/coding/extension/host/inproc"
 	"github.com/MichaelKinsy/PiG/coding/extension/host/subprocess"
 	"github.com/MichaelKinsy/PiG/coding/rpcclient"
 	"github.com/MichaelKinsy/PiG/internal/codingagent"
@@ -90,6 +91,8 @@ type printModeRuntime struct {
 	Rebuild func(ctx context.Context, options coding.CreateAgentSessionRuntimeOptions) (printModeRuntime, error)
 	// Invalidate makes the extension host reject later calls of a replaced Session's extension processes.
 	Invalidate func(message string)
+	// Bind connects the build's interpreted extensions to the Session's runner.
+	Bind func(ctx context.Context, runner *inproc.Runner) error
 	// Release retires the extension host and services of a replaced Session.
 	Release func(reason string)
 	// Resources builds the command catalog from the build's resources, which a reload replaces.
@@ -108,7 +111,7 @@ func (h printModeRuntime) startOptions() coding.SessionStartOptions {
 }
 
 func (h printModeRuntime) inputs() cliSessionInputs {
-	return cliSessionInputs{Services: h.Services, Extensions: h.Extensions, Start: h.Session, Host: h.Host, Invalidate: h.Invalidate, Release: h.Release}
+	return cliSessionInputs{Services: h.Services, Extensions: h.Extensions, Start: h.Session, Host: h.Host, Invalidate: h.Invalidate, Bind: h.Bind, Release: h.Release}
 }
 
 // printSessionState is the mode state of one print-mode Session.

@@ -95,10 +95,12 @@ type cliBuild struct {
 	SkillScopes     *[]string
 	SourceResolver  *startupExtensionSourceResolver
 
-	ExtraExtConfigs         []subprocess.ExtConfig
-	EmbeddedCells           []subprocess.EmbeddedCell
-	ReloadExtensionConfigs  func() []subprocess.ExtConfig
-	SubprocessExtensions    []extension.Extension
+	ExtraExtConfigs        []subprocess.ExtConfig
+	EmbeddedCells          []subprocess.EmbeddedCell
+	ReloadExtensionConfigs func() []subprocess.ExtConfig
+	SubprocessExtensions   []extension.Extension
+	// LetGo owns the interpreted generations this build loaded; its extensions are part of SubprocessExtensions' load order.
+	LetGo                   *letGoSet
 	Host                    *subprocess.Host
 	Bridge                  *subprocess.UIBridge
 	ReloadBuiltinExtensions func() []extension.Extension
@@ -198,6 +200,8 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 		trace.Mark("trust-preload-start")
 		userScope := []string{"user"}
 		preTrustConfigs := collectExtensionConfigs(cwd, b.agentDir, services.SettingsManager(), resourceFlags, &userScope, resolver.Resolve)
+		// pig additive (D89): interpreted sources evaluate in this process, so none runs before project trust resolves. Let-go has no project_trust hook.
+		_, preTrustConfigs = splitLetGoConfigs(preTrustConfigs)
 		preTrustExts, _, preTrustBridge, preTrustLoadErrs := loadFinalSubprocessExtensions(
 			ctx,
 			cwd,
@@ -353,7 +357,19 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 	releaseRegistrationRefresh := registry.HoldRegistrationRefresh()
 	defer releaseRegistrationRefresh()
 	if !flags.NoExtensions || len(finalExtConfigs) > 0 || len(embeddedCells) > 0 {
-		build.SubprocessExtensions, build.Host, build.Bridge, extensionLoadErrs = loadFinalSubprocessExtensions(ctx, cwd, b.mode.extensionMode(), registry.ModelRegistry, finalExtConfigs, embeddedCells, reloadFinalExtConfigs, startupExtensions)
+		interpreted, subprocessConfigs := splitLetGoConfigs(finalExtConfigs)
+		build.SubprocessExtensions, build.Host, build.Bridge, extensionLoadErrs = loadFinalSubprocessExtensions(ctx, cwd, b.mode.extensionMode(), registry.ModelRegistry, subprocessConfigs, embeddedCells, reloadFinalExtConfigs, startupExtensions)
+		if len(interpreted) > 0 {
+			// pig additive (D89): project trust is resolved by now, so an untrusted project source was never collected into finalExtConfigs.
+			var letGoErrs []error
+			build.LetGo, letGoErrs = loadLetGoSet(ctx, finalExtConfigs)
+			if in.StartupExtensions != nil {
+				// The startup set owns the generations until the Session retires them, so an early exit still runs their shutdown.
+				startupExtensions.letGo = build.LetGo
+			}
+			extensionLoadErrs = append(extensionLoadErrs, letGoErrs...)
+			build.SubprocessExtensions = interleaveLetGo(build.SubprocessExtensions, build.LetGo)
+		}
 	}
 	virtualModelDiagnostics := flushExtensionHostVirtualModels(build.Host, registry)
 	// Pi createAgentSessionServices awaits a local refresh after it flushes extension provider registrations, before model resolution and --list-models (agent-session-services.ts:158-182). The registrations only queued their refresh, and this call yields to it (model-runtime.ts:744-750). Later host registrations start their own refresh.
@@ -377,6 +393,7 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 		if build.Host != nil {
 			build.Host.Shutdown("extension load failure")
 		}
+		closeLetGo(build.LetGo, "extension load failure")
 	}
 	defer func() {
 		if failed {
@@ -413,6 +430,19 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 	build.Settings = settings
 	failed = false
 	return build, nil
+}
+
+// retireExtensions releases the build's extension processes and interpreted generations once its Session is gone.
+func (b *cliBuild) retireExtensions(reason string) {
+	if b.Host != nil {
+		b.Host.Shutdown(reason)
+	}
+	closeLetGo(b.LetGo, reason)
+}
+
+// bindExtensions connects the build's interpreted generations to the Session's live runner.
+func (b *cliBuild) bindExtensions(ctx context.Context, runner *inproc.Runner) error {
+	return b.LetGo.bind(ctx, runner)
 }
 
 // buildSession resolves the model, skills, tools and system prompt against the build's resources, as Pi's createRuntime does before createAgentSessionFromServices.

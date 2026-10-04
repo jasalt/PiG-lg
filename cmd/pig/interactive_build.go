@@ -88,10 +88,9 @@ func (b *cliRuntimeBuilder) interactiveInputs(build *cliBuild, startup coding.Se
 				build.Host.Invalidate(message)
 			}
 		},
+		Bind: build.bindExtensions,
 		Release: func(reason string) {
-			if build.Host != nil {
-				build.Host.Shutdown(reason)
-			}
+			build.retireExtensions(reason)
 			build.Services.Close()
 		},
 	}
