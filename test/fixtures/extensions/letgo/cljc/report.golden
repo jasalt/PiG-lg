@@ -1,0 +1,1 @@
+[{:longest "quick", :upper "THE QUICK BROWN   FOX", :words 4} [1 2 3 4] (:a :b :c) [1 2 3] {\a 2, \b 1, \c 1} 180]
