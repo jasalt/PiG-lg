@@ -18,6 +18,8 @@ A selected source is a namespace that defines `(defn init [api] ...)` and may de
 
 `Loaded.Close` closes the registration builder first, then calls `(shutdown api)` with the same `api` map that `init` received. Shutdown runs at most once per generation. Registration attempts during shutdown fail. A thrown or panicking shutdown is joined into the `Close` error as a `shutdown` phase failure, but the generation still closes and later callbacks return `ErrClosed`. If `Close` is cancelled while waiting for VM entry, shutdown has not run, so a retry runs it. Shutdown is skipped when `init` failed, matching Kmet's rollback without shutdown. Shutdown is advisory cleanup for extension-owned resources. Host-owned deregistration does not depend on it. Reload and startup ordering of `Close` belongs to the reload and startup integration.
 
+`LoadForTest` in `coding/extension/host/letgo/testapi.go` runs a source's `init` through the real loader without a runner or session. It returns the generation and the registered tool, command and event inventory in native order, similar to Kmet's nullable api. Callbacks that need a live native context fail as unbound. A Clojure-visible nullable api is not provided.
+
 ## Interpreted commands
 
 `init` can call `(pig.extension/register-command! api "name" {:description "Description" :handler (fn [c args] ...)})`. The handler receives an opaque callback token and the exact native argument string. The runner resolves conflicts and reports interpreted handler errors through its normal error listeners. Re-registering a command during loading replaces it without moving its first-registration position. Source metadata remains native registration metadata.

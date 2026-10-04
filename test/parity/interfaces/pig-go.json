@@ -76663,6 +76663,17 @@
       "shapeHash": "sha256:08b09120218b2e41e1b4db5b42db1d18efb181bab7e11f49842a21ae4c7b5198"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#LoadForTest",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "LoadForTest",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context, entrypoint string) (*Loaded, Registrations, error)"
+      },
+      "shapeHash": "sha256:e7b102ff3ae1c64f645ff2cdfdc577e9906da5017d14b84d375dcff6a4356c8d"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#LoadOptions",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "LoadOptions",
@@ -76850,6 +76861,17 @@
       "shapeHash": "sha256:b6c656d5807b329935919c4440a04b445bfdd4ff7a1c9ef6f355165d86fe7d20"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.registrationsSummary",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.registrationsSummary",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() Registrations"
+      },
+      "shapeHash": "sha256:76cd1865e42e1677655b2a5a97c57bee78049e988eb6ca943baa718e23759c25"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.signalCancelled",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.signalCancelled",
@@ -76881,6 +76903,17 @@
         "type": "func() *RuntimeHost"
       },
       "shapeHash": "sha256:7dc16f67a6611e570a5c594fe493b14b6e8c844e686808f495d0377a7f10d290"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Registrations",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Registrations",
+      "kind": "type",
+      "exported": true,
+      "shape": {
+        "type": "Registrations"
+      },
+      "shapeHash": "sha256:f0aac8e57c608a668f2d7c4053274abd1244ec5605858a675be1aa30c8a375a4"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#RuntimeHost",
