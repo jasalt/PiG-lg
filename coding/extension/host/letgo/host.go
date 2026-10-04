@@ -8,13 +8,24 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"sync/atomic"
 
 	"github.com/nooga/let-go/pkg/api"
 	"github.com/nooga/let-go/pkg/rt"
 	"github.com/nooga/let-go/pkg/vm"
 )
 
-var ErrClosed = errors.New("let-go extension generation is closed")
+var (
+	ErrClosed    = errors.New("let-go extension generation is closed")
+	ErrReentrant = errors.New("let-go callback cannot synchronously enter the interpreter again")
+)
+
+type vmScopeKey struct{}
+
+type vmScope struct {
+	host   *RuntimeHost
+	active atomic.Bool
+}
 
 var processHost struct {
 	sync.Once
@@ -56,10 +67,14 @@ type Generation struct {
 	names        map[string]*vm.Namespace
 	stdoutHandle vm.Value
 	stderrHandle vm.Value
+	scope        atomic.Pointer[vmScope]
 	closed       bool // protected by host.gate
 }
 
 func (h *RuntimeHost) enter(ctx context.Context) error {
+	if scope, ok := ctx.Value(vmScopeKey{}).(*vmScope); ok && scope.host == h && scope.active.Load() {
+		return ErrReentrant
+	}
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -145,12 +160,27 @@ func (g *Generation) withVM(ctx context.Context, call func() (vm.Value, error)) 
 		return vm.NIL, ErrClosed
 	}
 	g.host.swap(g.names, g.loader)
+	scope := &vmScope{host: g.host}
+	scope.active.Store(true)
+	g.scope.Store(scope)
 	defer func() {
+		scope.active.Store(false)
+		g.scope.Store(nil)
 		g.names = g.host.capture()
 		g.host.active = g.names
 		g.host.swap(nil, g.host.baseLoader)
 	}()
 	return call()
+}
+
+// CallbackContext marks the context passed to synchronous Go host functions
+// invoked by this generation. Those functions must propagate it to any nested
+// let-go call so the coordinator rejects reentry instead of deadlocking.
+func (g *Generation) CallbackContext(ctx context.Context) context.Context {
+	if scope := g.scope.Load(); scope != nil {
+		return context.WithValue(ctx, vmScopeKey{}, scope)
+	}
+	return ctx
 }
 
 // Def injects one Go function or value into the generation's current namespace.

@@ -207,6 +207,36 @@ func TestGenerationCloseWaitsForActiveCallback(t *testing.T) {
 	}
 }
 
+func TestGenerationRejectsSynchronousReentryWithoutInvalidatingRetainedContext(t *testing.T) {
+	ctx := context.Background()
+	host := letgo.NewRuntimeHost()
+	generation, err := host.NewGeneration(ctx, "pig.test.reentry", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = generation.Close(ctx) }()
+	var retained context.Context
+	if err := generation.Def(ctx, "nest", func() (vm.Value, error) {
+		retained = generation.CallbackContext(ctx)
+		_, callErr := generation.Run(retained, "(+ 2 3)")
+		return vm.NIL, callErr
+	}); err != nil {
+		t.Fatal(err)
+	}
+	bounded, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	_, err = generation.Run(bounded, "(nest)")
+	if err == nil || !strings.Contains(err.Error(), letgo.ErrReentrant.Error()) {
+		t.Fatalf("nested VM entry: %v", err)
+	}
+	if retained == nil {
+		t.Fatal("Go callback did not retain its scope")
+	}
+	if got, err := generation.Run(retained, "(+ 2 3)"); err != nil || got != vm.Int(5) {
+		t.Fatalf("retained context after callback: %v %v", got, err)
+	}
+}
+
 func TestGenerationRetiresNamespacesAcrossRepeatedLoads(t *testing.T) {
 	ctx := context.Background()
 	host := letgo.NewRuntimeHost()
