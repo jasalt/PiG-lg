@@ -5,6 +5,6 @@
 
 (defn register-tool! [api tool] ((:register-tool! api) tool))
 
-(defn register-command! [api name options] ((:register-command! api) name options))
+(defn register-command! [api command] ((:register-command! api) command))
 
 (defn on-event [api event handler] ((:on-event api) event handler))

@@ -7,11 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
+	"strings"
 
 	"github.com/nooga/let-go/pkg/vm"
 
+	"github.com/MichaelKinsy/PiG/agent"
 	"github.com/MichaelKinsy/PiG/coding/extension"
 )
 
@@ -149,6 +154,7 @@ func (l *Loaded) callbackContext() (context.Context, error) {
 	return l.generation.CallbackContext(ctx), nil
 }
 
+// pig additive (D89): tools take Kmet's (fn [args]); :contextual? true selects (fn [args on-update signal ctx]) without arity inspection.
 func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	if _, err := l.callbackContext(); err != nil {
 		return vm.NIL, err
@@ -157,11 +163,21 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	if err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
 	}
+	contextual, data, err := flagField(data, "contextual?")
+	if err != nil {
+		return vm.NIL, l.phaseError("register tool", err)
+	}
+	if err := registrationKeys(data, reflect.TypeFor[extension.ToolDefinition](), unsupportedToolKeys); err != nil {
+		return vm.NIL, l.phaseError("register tool", err)
+	}
 	var definition extension.ToolDefinition
 	if err := decodeValue(data, &definition); err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
 	}
-	definition.Execute = func(ctx context.Context, _ string, params json.RawMessage, _ extension.AgentToolUpdateCallback) (extension.AgentToolResult, error) {
+	if definition.Name == "" {
+		return vm.NIL, l.phaseError("register tool", errors.New("$.name: tool requires a non-empty string name"))
+	}
+	definition.Execute = func(ctx context.Context, _ string, params json.RawMessage, onUpdate extension.AgentToolUpdateCallback) (extension.AgentToolResult, error) {
 		var plain any
 		decoder := json.NewDecoder(bytes.NewReader(params))
 		decoder.UseNumber()
@@ -179,7 +195,12 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 		if err != nil {
 			return nil, l.phaseError("tool arguments", err)
 		}
-		result, err := l.invoke(ctx, callback, arguments)
+		result, err := l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value {
+			if !contextual {
+				return []vm.Value{arguments}
+			}
+			return []vm.Value{arguments, &toolUpdate{owner: l, token: token, update: updateCallback(onUpdate)}, &signalToken{owner: l, context: token, signal: ctx}, token}
+		})
 		if err != nil {
 			return nil, l.phaseError("execute tool "+definition.Name, err)
 		}
@@ -195,39 +216,107 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	return vm.NIL, nil
 }
 
-// invoke calls a tool or command callback as (ctx payload).
+// unsupportedToolKeys are Kmet tool keys with no let-go realization; they fail rather than being silently ignored.
+var unsupportedToolKeys = map[string]string{
+	"params":            "Kmet :params shorthand is not supported; use :parameters with a JSON schema",
+	"prepare-arguments": "Kmet :prepare-arguments is not supported by let-go tools",
+	"title":             "Kmet :title is not supported by let-go tools",
+	"streams?":          "Kmet :streams? is not supported; use :contextual? true for on-update",
+	"render-call":       "Kmet :render-call is not supported by let-go tools",
+	"render-result":     "Kmet :render-result is not supported by let-go tools",
+}
+
+// unsupportedCommandKeys name Kmet command metadata with no native CommandOptions field.
+var unsupportedCommandKeys = map[string]string{
+	"argument-hint": "Kmet :argument-hint has no native command field",
+}
+
+// updateCallback accepts the agent's update callback shapes; any other value drops updates, as the subprocess host does.
+func updateCallback(onUpdate extension.AgentToolUpdateCallback) func(agent.AgentToolResult) {
+	switch update := onUpdate.(type) {
+	case agent.ToolUpdateCallback:
+		return update
+	case func(agent.AgentToolResult):
+		return update
+	}
+	return nil
+}
+
+// toolUpdate is the contextual on-update function; it is valid only while its tool call runs.
+type toolUpdate struct {
+	owner  *Loaded
+	token  *invocationToken
+	update func(agent.AgentToolResult)
+}
+
+func (*toolUpdate) String() string     { return "#<pig.on-update>" }
+func (*toolUpdate) Type() vm.ValueType { return vm.AnyType }
+func (*toolUpdate) Unbox() any         { return nil }
+func (*toolUpdate) Arity() int         { return 1 }
+
+func (u *toolUpdate) Invoke(args []vm.Value) (vm.Value, error) {
+	if len(args) != 1 {
+		return vm.NIL, fmt.Errorf("on-update expects one partial result, got %d arguments", len(args))
+	}
+	if !u.token.active || u.owner.current != u.token {
+		return vm.NIL, errors.New("on-update called outside its tool call")
+	}
+	if err := u.owner.registrations.activeError(); err != nil {
+		return vm.NIL, err
+	}
+	partial, err := toolResultValue(args[0])
+	if err != nil {
+		return vm.NIL, fmt.Errorf("on-update: %w", err)
+	}
+	if u.update != nil {
+		u.update(partial)
+	}
+	return vm.NIL, nil
+}
+
+// invoke calls a command callback as (ctx args).
 func (l *Loaded) invoke(ctx context.Context, callback vm.Fn, payload vm.Value) (vm.Value, error) {
-	return l.invokeScoped(ctx, callback, func(token vm.Value) []vm.Value { return []vm.Value{token, payload} })
+	return l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value { return []vm.Value{token, payload} })
 }
 
 // invokeEvent calls an event handler as (event ctx), the Kmet-compatible order.
 func (l *Loaded) invokeEvent(ctx context.Context, callback vm.Fn, event vm.Value) (vm.Value, error) {
-	return l.invokeScoped(ctx, callback, func(token vm.Value) []vm.Value { return []vm.Value{event, token} })
+	return l.invokeScoped(ctx, callback, func(token *invocationToken) []vm.Value { return []vm.Value{event, token} })
 }
 
-func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token vm.Value) []vm.Value) (vm.Value, error) {
+func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token *invocationToken) []vm.Value) (vm.Value, error) {
 	token := &invocationToken{owner: l, ctx: ctx}
 	return guardedValue(func() (vm.Value, error) {
 		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, arguments(token))
 	})
 }
 
-// pig additive (D89): commands register through the typed native subset and reuse generation-owned invocation.
-func (l *Loaded) registerCommand(name, value vm.Value) (vm.Value, error) {
+// pig additive (D89): commands register Kmet's {:name :handler} map through the typed native subset and reuse generation-owned invocation.
+func (l *Loaded) registerCommand(value vm.Value) (vm.Value, error) {
 	if _, err := l.callbackContext(); err != nil {
 		return vm.NIL, err
-	}
-	var commandName string
-	if err := decodeValue(name, &commandName); err != nil {
-		return vm.NIL, l.phaseError("register command name", err)
 	}
 	callback, data, err := callbackField(value, "handler")
 	if err != nil {
 		return vm.NIL, l.phaseError("register command", err)
 	}
-	var options extension.CommandOptions
-	if err := decodeValue(data, &options); err != nil {
+	completions, data, err := optionalCallbackField(data, "get-argument-completions")
+	if err != nil {
 		return vm.NIL, l.phaseError("register command", err)
+	}
+	var fields struct {
+		Name string `json:"name"`
+		extension.CommandOptions
+	}
+	if err := registrationKeys(data, reflect.TypeOf(fields), unsupportedCommandKeys); err != nil {
+		return vm.NIL, l.phaseError("register command", err)
+	}
+	if err := decodeValue(data, &fields); err != nil {
+		return vm.NIL, l.phaseError("register command", err)
+	}
+	commandName, options := fields.Name, fields.CommandOptions
+	if commandName == "" {
+		return vm.NIL, l.phaseError("register command", errors.New("$.name: command requires a non-empty string name"))
 	}
 	options.Handler = func(ctx context.Context, args string) error {
 		_, err := l.invoke(ctx, callback, vm.String(args))
@@ -236,6 +325,22 @@ func (l *Loaded) registerCommand(name, value vm.Value) (vm.Value, error) {
 		}
 		return nil
 	}
+	if completions != nil {
+		// Native completion has no context, so it is entered like the subprocess host's request: uncancelled.
+		options.GetArgumentCompletions = func(prefix string) ([]extension.AutocompleteItem, error) {
+			result, err := guardedValue(func() (vm.Value, error) {
+				return l.generation.Invoke(context.Background(), completions, []vm.Value{vm.String(prefix)})
+			})
+			if err != nil {
+				return nil, l.phaseError("argument completions "+commandName, err)
+			}
+			var items []extension.AutocompleteItem
+			if err := decodeValue(result, &items); err != nil {
+				return nil, l.phaseError("argument completions "+commandName, err)
+			}
+			return items, nil
+		}
+	}
 	if err := l.registrations.RegisterCommand(commandName, options); err != nil {
 		return vm.NIL, l.phaseError("register command", err)
 	}
@@ -243,6 +348,47 @@ func (l *Loaded) registerCommand(name, value vm.Value) (vm.Value, error) {
 }
 
 func callbackField(value vm.Value, field string) (vm.Fn, vm.Value, error) {
+	function, data, err := takeField(value, field)
+	if err != nil {
+		return nil, nil, err
+	}
+	callback, ok := function.(vm.Fn)
+	if !ok {
+		return nil, nil, fmt.Errorf("$.%s: expected a function, got %T", field, function)
+	}
+	return callback, data, nil
+}
+
+// optionalCallbackField returns a nil callback when the field is absent or nil.
+func optionalCallbackField(value vm.Value, field string) (vm.Fn, vm.Value, error) {
+	function, data, err := takeField(value, field)
+	if err != nil || function == vm.NIL {
+		return nil, data, err
+	}
+	callback, ok := function.(vm.Fn)
+	if !ok {
+		return nil, nil, fmt.Errorf("%s: expected a function, got %T", fieldPath("$", field), function)
+	}
+	return callback, data, nil
+}
+
+// flagField reads an optional boolean registration flag; nil and absence are false.
+func flagField(value vm.Value, field string) (bool, vm.Value, error) {
+	flag, data, err := takeField(value, field)
+	if err != nil {
+		return false, nil, err
+	}
+	switch flag := flag.(type) {
+	case vm.Boolean:
+		return bool(flag), data, nil
+	case *vm.Nil:
+		return false, data, nil
+	}
+	return false, nil, fmt.Errorf("%s: expected a boolean, got %T", fieldPath("$", field), flag)
+}
+
+// takeField removes one keyword- or string-keyed field and returns its value, or nil when absent.
+func takeField(value vm.Value, field string) (vm.Value, vm.Value, error) {
 	switch value.(type) {
 	case vm.Map, *vm.PersistentMap:
 	default:
@@ -251,16 +397,58 @@ func callbackField(value vm.Value, field string) (vm.Fn, vm.Value, error) {
 	keyed := value.(vm.Keyed)
 	keyword, text := vm.Keyword(field), vm.String(field)
 	if keyed.Contains(keyword) == vm.TRUE && keyed.Contains(text) == vm.TRUE {
-		return nil, nil, fmt.Errorf("$.%s: duplicate object key", field)
+		return nil, nil, fmt.Errorf("%s: duplicate object key", fieldPath("$", field))
 	}
 	lookup := value.(vm.Lookup)
-	function := lookup.ValueAtOr(keyword, lookup.ValueAt(text))
-	callback, ok := function.(vm.Fn)
-	if !ok {
-		return nil, nil, fmt.Errorf("$.%s: expected a function, got %T", field, function)
+	found := lookup.ValueAtOr(keyword, lookup.ValueAtOr(text, vm.NIL))
+	return found, value.(vm.Associative).Dissoc(keyword).Dissoc(text), nil
+}
+
+// registrationKeys rejects every key the native decoder would otherwise ignore, naming Kmet-only keys explicitly.
+// It inspects keys before converting values, so a Kmet callback value reports its key rather than its type.
+func registrationKeys(data vm.Value, native reflect.Type, unsupported map[string]string) error {
+	allowed := jsonFieldNames(native)
+	var keys []string
+	sequence := data.(vm.Sequable)
+	for seq, i := sequence.Seq(), 0; i < data.(vm.Counted).RawCount() && seq != nil; seq, i = seq.Next(), i+1 {
+		switch key := seq.First().(vm.Seq).First().(type) {
+		case vm.String:
+			keys = append(keys, string(key))
+		case vm.Keyword:
+			keys = append(keys, string(key))
+		default:
+			return fmt.Errorf("$: unsupported object key %T", key)
+		}
 	}
-	data := value.(vm.Associative).Dissoc(keyword).Dissoc(text)
-	return callback, data, nil
+	slices.Sort(keys)
+	for _, key := range keys {
+		if reason, ok := unsupported[key]; ok {
+			return fmt.Errorf("%s: %s", fieldPath("$", key), reason)
+		}
+		if !allowed[key] {
+			return fmt.Errorf("%s: unsupported registration key", fieldPath("$", key))
+		}
+	}
+	return nil
+}
+
+// jsonFieldNames lists the JSON object names the native decoder accepts, including embedded struct fields.
+func jsonFieldNames(native reflect.Type) map[string]bool {
+	names := make(map[string]bool)
+	for i := range native.NumField() {
+		field := native.Field(i)
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		switch {
+		case field.Anonymous && name == "":
+			maps.Copy(names, jsonFieldNames(field.Type))
+		case name == "-" || !field.IsExported():
+		case name == "":
+			names[field.Name] = true
+		default:
+			names[name] = true
+		}
+	}
+	return names
 }
 
 // Bind connects the published builder to the native runner's live context.

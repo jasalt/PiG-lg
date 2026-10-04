@@ -11,6 +11,6 @@
     :parameters {:type "object"
                  :properties {:text {:type "string"}}
                  :required ["text"]}
-    :execute (fn [_ctx {:keys [text]}]
+    :execute (fn [{:keys [text]}]
                {:content [{:type "text" :text (core/report text)}]
                 :details {:host (name core/host)}})}))

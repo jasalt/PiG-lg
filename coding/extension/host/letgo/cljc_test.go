@@ -85,7 +85,7 @@ func writeTree(t *testing.T, files map[string]string) string {
 const reportingEntry = `(ns probe.entry (:require [pig.extension :as ext] [probe.helper :as helper]))
  (defn init [api]
    (ext/register-tool! api {:name "probe" :parameters {:type "object"}
-     :execute (fn [c p] {:content [{:type "text" :text (pr-str helper/value)}]})}))`
+     :execute (fn [p] {:content [{:type "text" :text (pr-str helper/value)}]})}))`
 
 func TestCljcHelperResolutionOrderPrefersLgOverCljcOverClj(t *testing.T) {
 	for _, test := range []struct {

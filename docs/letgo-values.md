@@ -18,7 +18,7 @@ The boundary accepts nil, booleans, safe integers, finite floats, strings, array
 
 Object keys must be strings or unqualified keywords. A namespaced keyword fails conversion. A keyword and string with the same object-key spelling fail conversion rather than overwrite a field. Collections convert recursively. Errors identify the failing field or index. Nesting beyond 256 conversion frames fails, including cyclic maps. Width is proportional to the supplied finite collection; this boundary provides no process-memory isolation.
 
-Typed result decoding uses the native JSON decoders. The three sealed extension unions use `UnmarshalInputEventResult`, `UnmarshalToolCallEvent`, and `UnmarshalToolResultEvent`. The native decoder decides whether a missing discriminator, unknown discriminator, null, omitted field, or wrong field type is valid. A native input-result union uses its corresponding native marshaler when sent to the interpreter.
+Typed result decoding uses the native JSON decoders. The three sealed extension unions use `UnmarshalInputEventResult`, `UnmarshalToolCallEvent`, and `UnmarshalToolResultEvent`. The native decoder decides whether a missing discriminator, unknown discriminator, null, omitted field, or wrong field type is valid. A native input-result union uses its corresponding native marshaler when sent to the interpreter. A tool result whose `:content` is a string is coerced to one text block before native decoding; this is input coercion only.
 
 ## Semantic limits
 

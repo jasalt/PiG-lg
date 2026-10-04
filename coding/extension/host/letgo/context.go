@@ -42,6 +42,9 @@ func (*signalToken) String() string     { return "#<pig.signal>" }
 func (*signalToken) Type() vm.ValueType { return vm.AnyType }
 func (*signalToken) Unbox() any         { return nil }
 
+// Deref makes @signal report cancellation, like Kmet's abort atom; it reads only the native context state.
+func (t *signalToken) Deref() vm.Value { return vm.Boolean(t.signal.Err() != nil) }
+
 func (l *Loaded) signalCancelled(value vm.Value) (vm.Value, error) {
 	token, ok := value.(*signalToken)
 	if !ok || token == nil || token.owner != l {

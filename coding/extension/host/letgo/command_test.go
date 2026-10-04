@@ -16,9 +16,9 @@ func TestCommandLoadNativeDispatchExactArgumentsAndReplacement(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.command.fixture (:require [pig.extension :as pig]))
  (def received (atom nil))
  (defn init [api]
- (pig/register-command! api "echo" {:description "old" :handler (fn [c args] (reset! received "old"))})
- (pig/register-command! api "other" {:handler (fn [c args] nil)})
- (pig/register-command! api "echo" {:description "new" :handler (fn [c args] (reset! received args))}))`)
+ (pig/register-command! api {:name "echo" :description "old" :handler (fn [c args] (reset! received "old"))})
+ (pig/register-command! api {:name "other" :handler (fn [c args] nil)})
+ (pig/register-command! api {:name "echo" :description "new" :handler (fn [c args] (reset! received args))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	commands := runner.Commands()
@@ -40,8 +40,8 @@ func TestCommandLoadNativeDispatchExactArgumentsAndReplacement(t *testing.T) {
 }
 
 func TestCommandNativeConflictAndErrorReporting(t *testing.T) {
-	first := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "same" {:handler (fn [c args] nil)}))`)
-	second := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "same" {:handler (fn [c args] (throw (ex-info "command failed" {})))}))`)
+	first := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api {:name "same" :handler (fn [c args] nil)}))`)
+	second := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api {:name "same" :handler (fn [c args] (throw (ex-info "command failed" {})))}))`)
 	runner := inproc.NewRunner([]extension.Extension{first.Extension, second.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	commands := runner.Commands()
@@ -66,7 +66,7 @@ func TestCommandNativeConflictAndErrorReporting(t *testing.T) {
 }
 
 func TestCommandMalformedRegistrationAndCancellation(t *testing.T) {
-	loaded := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "cancel" {:handler (fn [c args] nil)}))`)
+	loaded := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api {:name "cancel" :handler (fn [c args] nil)}))`)
 	command := loaded.Extension.Commands["cancel"]
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -74,9 +74,9 @@ func TestCommandMalformedRegistrationAndCancellation(t *testing.T) {
 		t.Fatalf("cancellation lost: %v", err)
 	}
 	for _, source := range []string{
-		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "" {:handler (fn [c args] nil)}))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api {:name "" :handler (fn [c args] nil)}))`,
 		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api 12 {:handler (fn [c args] nil)}))`,
-		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "bad" {:handler "not a fn"}))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api {:name "bad" :handler "not a fn"}))`,
 	} {
 		path := filepath.Join(t.TempDir(), "malformed.lg")
 		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {

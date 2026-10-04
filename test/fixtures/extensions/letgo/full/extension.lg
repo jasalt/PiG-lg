@@ -6,8 +6,8 @@
 (defn init [api]
   (pig/register-command!
     api
-    "hello"
-    {:description "Record the exact command arguments"
+    {:name "hello"
+     :description "Record the exact command arguments"
      :handler (fn [c args] (reset! command-arguments args))})
 
   (pig/register-tool!
@@ -17,7 +17,7 @@
      :parameters {:type "object"
                   :properties {:name {:type "string"}}
                   :required ["name"]}
-     :execute (fn [c params]
+     :execute (fn [params]
                 {:content [{:type "text" :text (str "Hello " (:name params))}]
                  :details {:received (:name params)}})})
 
@@ -25,13 +25,13 @@
     api
     {:name "other"
      :parameters {:type "object"}
-     :execute (fn [c params] {:content []})})
+     :execute (fn [params] {:content []})})
 
   (pig/register-tool!
     api
     {:name "hello"
      :description "Say hello after replacement"
      :parameters {:type "object"}
-     :execute (fn [c params]
+     :execute (fn [params]
                 {:content [{:type "text" :text (str "Welcome " (:name params))}]
                  :details {:received (:name params)}})}))

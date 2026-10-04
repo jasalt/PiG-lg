@@ -13,9 +13,9 @@ func TestLoadForTestCapturesInitRegistrationsWithoutSession(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "extension.lg")
 	if err := os.WriteFile(path, []byte(`(ns pig.testapi.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (defn init [api]
-   (pig/register-tool! api {:name "first" :parameters {:type "object"} :execute (fn [c p] {:content []})})
-   (pig/register-tool! api {:name "second" :parameters {:type "object"} :execute (fn [c p] {:content []})})
-   (pig/register-command! api "where" {:handler (fn [c args] (ctx/cwd c))})
+   (pig/register-tool! api {:name "first" :parameters {:type "object"} :execute (fn [p] {:content []})})
+   (pig/register-tool! api {:name "second" :parameters {:type "object"} :execute (fn [p] {:content []})})
+   (pig/register-command! api {:name "where" :handler (fn [c args] (ctx/cwd c))})
    (pig/on-event api :session-start (fn [e c] nil))
    (pig/on-event api :session-start (fn [e c] nil))
    (pig/on-event api :agent-end (fn [e c] nil)))`), 0o600); err != nil {

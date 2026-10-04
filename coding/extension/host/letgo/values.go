@@ -271,8 +271,13 @@ func toolResultValue(value vm.Value) (agent.AgentToolResult, error) {
 	if !ok {
 		return agent.AgentToolResult{}, fmt.Errorf("$: tool result must be an object")
 	}
-	if _, ok := object["content"].([]any); !ok {
-		return agent.AgentToolResult{}, fmt.Errorf("$.content: tool result requires an array")
+	// pig additive (D89): Kmet's string :content is input shorthand for one text block; native output keeps blocks.
+	switch content := object["content"].(type) {
+	case []any:
+	case string:
+		object["content"] = []any{map[string]any{"type": "text", "text": content}}
+	default:
+		return agent.AgentToolResult{}, fmt.Errorf("$.content: tool result requires a string or an array")
 	}
 	data, err := json.Marshal(object)
 	if err != nil {

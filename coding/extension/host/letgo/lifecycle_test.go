@@ -18,8 +18,8 @@ func TestLifecycleInitReceivesCapabilityMap(t *testing.T) {
  (def seen (atom nil))
  (defn init [api]
    (reset! seen [(:extension-name api) (:extension-path api) (:extension-dir api)])
-   ((:register-tool! api) {:name "direct" :parameters {:type "object"} :execute (fn [c p] {:content []})})
-   (pig/register-command! api "wrapped" {:handler (fn [c args] nil)}))`)
+   ((:register-tool! api) {:name "direct" :parameters {:type "object"} :execute (fn [p] {:content []})})
+   (pig/register-command! api {:name "wrapped" :handler (fn [c args] nil)}))`)
 	if loaded.entry.namespace != "pig.lifecycle.api" || loaded.entry.shutdown != nil {
 		t.Fatalf("entry %#v", loaded.entry)
 	}
@@ -60,10 +60,10 @@ func TestLifecycleActivationErrorsPublishNothing(t *testing.T) {
 		{"undeclared namespace", `(defn init [api] nil)`, "declare its own namespace"},
 		{"init throws after registering", `(ns pig.lifecycle.throws (:require [pig.extension :as pig]))
  (defn init [api]
-   (pig/register-tool! api {:name "partial" :parameters {:type "object"} :execute (fn [c p] {:content []})})
+   (pig/register-tool! api {:name "partial" :parameters {:type "object"} :execute (fn [p] {:content []})})
    (throw (ex-info "init failed" {})))`, "init failed"},
 		{"top-level registration has no api", `(ns pig.lifecycle.toplevel (:require [pig.extension :as pig]))
- (pig/register-tool! {:name "early" :parameters {:type "object"} :execute (fn [c p] {:content []})})
+ (pig/register-tool! {:name "early" :parameters {:type "object"} :execute (fn [p] {:content []})})
  (defn init [api] nil)`, ": load:"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -92,10 +92,10 @@ func loadWithOutput(t *testing.T, source string) (*Loaded, *bytes.Buffer, error)
 
 const shutdownProbe = `(ns pig.lifecycle.probe (:require [pig.extension :as pig]))
  (def saved (atom nil))
- (defn init [api] (reset! saved api) (pig/register-command! api "noop" {:handler (fn [c args] nil)}))
+ (defn init [api] (reset! saved api) (pig/register-command! api {:name "noop" :handler (fn [c args] nil)}))
  (defn shutdown [api]
    (println "shutdown" (identical? api @saved))
-   (println (try (pig/register-tool! api {:name "late" :parameters {:type "object"} :execute (fn [c p] {:content []})}) "registered" (catch e "rejected"))))`
+   (println (try (pig/register-tool! api {:name "late" :parameters {:type "object"} :execute (fn [p] {:content []})}) "registered" (catch e "rejected"))))`
 
 func TestShutdownRunsOnceWithInitAPIAndRejectsRegistration(t *testing.T) {
 	loaded, out, err := loadWithOutput(t, shutdownProbe)
@@ -138,7 +138,7 @@ func TestShutdownRetriesAfterCancelledClose(t *testing.T) {
 
 func TestShutdownFailureStillClosesGeneration(t *testing.T) {
 	loaded, _, err := loadWithOutput(t, `(ns pig.lifecycle.failing (:require [pig.extension :as pig]))
- (defn init [api] (pig/register-command! api "noop" {:handler (fn [c args] nil)}))
+ (defn init [api] (pig/register-command! api {:name "noop" :handler (fn [c args] nil)}))
  (defn shutdown [api] (throw (ex-info "shutdown failed" {})))`)
 	if err != nil {
 		t.Fatal(err)
