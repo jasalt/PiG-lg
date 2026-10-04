@@ -146,6 +146,10 @@ func uniqueExtensionPaths(configs []subprocess.ExtConfig) []subprocess.ExtConfig
 	out := make([]subprocess.ExtConfig, 0, len(configs))
 	for _, config := range configs {
 		path := config.Source
+		// pig additive (D89): canonical interpreter identity follows its exact source, not its shared load root.
+		if config.RuntimeKind == "let-go" {
+			path = config.Entrypoint
+		}
 		if path == "" {
 			path = config.Path
 		}
@@ -582,6 +586,10 @@ func pathToExtConfigs(path string, resolvers ...extsource.ResolveFunc) []subproc
 	if err == nil {
 		return []subprocess.ExtConfig{config}
 	}
+	// pig additive (D89): an exact interpreted source never falls back to executable admission when resolution fails.
+	if filepath.Ext(path) == ".lg" {
+		return []subprocess.ExtConfig{subprocess.UnresolvedExtConfig(path, err)}
+	}
 	if info, statErr := os.Stat(path); statErr == nil && info.IsDir() {
 		return []subprocess.ExtConfig{subprocess.UnresolvedExtConfig(path, err)}
 	}
@@ -602,6 +610,10 @@ func mergeExtConfigs(configs []subprocess.ExtConfig) []subprocess.ExtConfig {
 			config.Name = filepath.Base(strings.TrimSuffix(base, string(filepath.Separator)))
 		}
 		origin := config.Source
+		// pig additive (D89): independent files in one root are distinct interpreted registrations.
+		if config.RuntimeKind == "let-go" {
+			origin = config.Entrypoint
+		}
 		if origin == "" {
 			origin = config.Path
 		}
