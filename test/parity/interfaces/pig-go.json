@@ -76773,6 +76773,28 @@
       "shapeHash": "sha256:d9b3bc74a5ff82f1481bad991a9acea27409f571c846d295f0ff4742f80a22e8"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.invokeEvent",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.invokeEvent",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, callback github.com/nooga/let-go/pkg/vm.Fn, event github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:ce0c4103a25982dcc9b29faa8c26e4b828b46fd02800bfa7997a4f12107f8270"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.invokeScoped",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.invokeScoped",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, callback github.com/nooga/let-go/pkg/vm.Fn, arguments func(token github.com/nooga/let-go/pkg/vm.Value) []github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:6cd0e4f2c06aece1e746efb64ce9e8103f5725bca0b65c0e287ddca526ebbeac"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.nativeContext",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.nativeContext",

@@ -26,7 +26,7 @@ Source loading compiles and evaluates forms sequentially under the generation ga
 
 ## Interpreted lifecycle events
 
-`(pig.extension/on-event api :session-start (fn [c event] ...))` registers an awaited native lifecycle handler. The exact public keywords are `:session-start`, `:session-shutdown`, `:agent-start`, `:agent-end`, and `:agent-settled`. The event data retains native JSON field names and type strings, including underscores in `event.type`. Unknown, namespaced, string-valued, and unsupported event names fail registration.
+`(pig.extension/on-event api :session-start (fn [event c] ...))` registers an awaited native lifecycle handler. Every event handler receives the event data first and the callback context second, matching Kmet; tool and command callbacks keep `(c payload)`. The exact public keywords are `:session-start`, `:session-shutdown`, `:agent-start`, `:agent-end`, and `:agent-settled`. The event data retains native JSON field names and type strings, including underscores in `event.type`. Unknown, namespaced, string-valued, and unsupported event names fail registration.
 
 The event table delegates to the corresponding typed `On<Event>` method. Handler order, dispatch snapshots, and error reporting belong to the native runner. A subscription registered from a callback applies to the next dispatch snapshot, not the dispatch in progress. Handler return values are ignored only for these native no-result events. Result-bearing events are not admitted by this table. Keep the generation alive through `session_shutdown` dispatch, then invalidate and close it.
 

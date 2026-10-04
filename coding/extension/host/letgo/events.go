@@ -19,7 +19,7 @@ func lifecycleAdapter[E any](name string, register func(*registrationBuilder, fu
 			if err != nil {
 				return owner.phaseError("event "+name, err)
 			}
-			_, err = owner.invoke(ctx, callback, value)
+			_, err = owner.invokeEvent(ctx, callback, value)
 			if err != nil {
 				return owner.phaseError("event "+name, err)
 			}
@@ -28,7 +28,7 @@ func lifecycleAdapter[E any](name string, register func(*registrationBuilder, fu
 	}}
 }
 
-// pig additive (D89): the exact lifecycle subset delegates to typed native registrations and awaited generation-owned callbacks.
+// pig additive (D89): the exact lifecycle subset delegates to typed native registrations and awaited generation-owned callbacks invoked as (event ctx).
 var lifecycleEvents = []eventAdapter{
 	lifecycleAdapter("session-start", (*registrationBuilder).OnSessionStart),
 	lifecycleAdapter("session-shutdown", (*registrationBuilder).OnSessionShutdown),

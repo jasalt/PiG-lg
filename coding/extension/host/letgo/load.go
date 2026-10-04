@@ -192,10 +192,20 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	return vm.NIL, nil
 }
 
+// invoke calls a tool or command callback as (ctx payload).
 func (l *Loaded) invoke(ctx context.Context, callback vm.Fn, payload vm.Value) (vm.Value, error) {
+	return l.invokeScoped(ctx, callback, func(token vm.Value) []vm.Value { return []vm.Value{token, payload} })
+}
+
+// invokeEvent calls an event handler as (event ctx), the Kmet-compatible order.
+func (l *Loaded) invokeEvent(ctx context.Context, callback vm.Fn, event vm.Value) (vm.Value, error) {
+	return l.invokeScoped(ctx, callback, func(token vm.Value) []vm.Value { return []vm.Value{event, token} })
+}
+
+func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token vm.Value) []vm.Value) (vm.Value, error) {
 	token := &invocationToken{owner: l, ctx: ctx}
 	return guardedValue(func() (vm.Value, error) {
-		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, []vm.Value{token, payload})
+		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, arguments(token))
 	})
 }
 
