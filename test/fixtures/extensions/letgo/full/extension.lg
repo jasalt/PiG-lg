@@ -2,30 +2,36 @@
   (:require [pig.extension :as pig]))
 
 (def command-arguments (atom nil))
-(pig/register-command!
-  "hello"
-  {:description "Record the exact command arguments"
-   :handler (fn [c args] (reset! command-arguments args))})
 
-(pig/register-tool!
-  {:name "hello"
-   :description "Say hello"
-   :parameters {:type "object"
-                :properties {:name {:type "string"}}
-                :required ["name"]}
-   :execute (fn [c params]
-              {:content [{:type "text" :text (str "Hello " (:name params))}]
-               :details {:received (:name params)}})})
+(defn init [api]
+  (pig/register-command!
+    api
+    "hello"
+    {:description "Record the exact command arguments"
+     :handler (fn [c args] (reset! command-arguments args))})
 
-(pig/register-tool!
-  {:name "other"
-   :parameters {:type "object"}
-   :execute (fn [c params] {:content []})})
+  (pig/register-tool!
+    api
+    {:name "hello"
+     :description "Say hello"
+     :parameters {:type "object"
+                  :properties {:name {:type "string"}}
+                  :required ["name"]}
+     :execute (fn [c params]
+                {:content [{:type "text" :text (str "Hello " (:name params))}]
+                 :details {:received (:name params)}})})
 
-(pig/register-tool!
-  {:name "hello"
-   :description "Say hello after replacement"
-   :parameters {:type "object"}
-   :execute (fn [c params]
-              {:content [{:type "text" :text (str "Welcome " (:name params))}]
-               :details {:received (:name params)}})})
+  (pig/register-tool!
+    api
+    {:name "other"
+     :parameters {:type "object"}
+     :execute (fn [c params] {:content []})})
+
+  (pig/register-tool!
+    api
+    {:name "hello"
+     :description "Say hello after replacement"
+     :parameters {:type "object"}
+     :execute (fn [c params]
+                {:content [{:type "text" :text (str "Welcome " (:name params))}]
+                 :details {:received (:name params)}})}))

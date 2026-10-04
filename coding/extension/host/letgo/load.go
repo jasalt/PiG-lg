@@ -32,7 +32,9 @@ type Loaded struct {
 	path           string
 	loadingContext context.Context
 	current        *invocationToken // accessed only under the generation's VM gate
-	latestSignal   *signalToken     // accessed only under the generation's VM gate
+	api            vm.Value
+	entry          entryFunctions
+	latestSignal   *signalToken // accessed only under the generation's VM gate
 }
 
 // pig additive (D89): callback contexts are opaque interpreter values, not reflective Go contexts.
@@ -59,7 +61,8 @@ func (f scopedFunction) Invoke(args []vm.Value) (vm.Value, error) {
 	return f.Fn.Invoke(args)
 }
 
-// Load evaluates one selected source and publishes typed native registrations.
+// Load evaluates one selected source, calls its init with the api capability map,
+// and publishes the typed native registrations init made.
 // It does not construct a runner or bind Session actions.
 // pig additive (D89): only selected trusted let-go sources enter the process-owned interpreter.
 func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
@@ -88,17 +91,27 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	if _, err = generation.withVM(ctx, func() (vm.Value, error) { return vm.NIL, loaded.installContext() }); err != nil {
 		return nil, loaded.phaseError("install context", err)
 	}
-	if err = generation.Def(ctx, "register-tool!", loaded.registerTool); err != nil {
-		return nil, loaded.phaseError("install", err)
-	}
-	if err = generation.Def(ctx, "register-command!", loaded.registerCommand); err != nil {
-		return nil, loaded.phaseError("install", err)
-	}
-	if err = generation.Def(ctx, "on!", loaded.onEvent); err != nil {
+	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, extensionFacade) }); err != nil {
 		return nil, loaded.phaseError("install", err)
 	}
 	if _, err = guardedValue(func() (vm.Value, error) { return generation.RunSource(ctx, string(source)) }); err != nil {
 		return nil, loaded.phaseError("load", err)
+	}
+	if _, err = generation.withVM(ctx, func() (vm.Value, error) {
+		var resolveErr error
+		loaded.entry, resolveErr = resolveEntry()
+		return vm.NIL, resolveErr
+	}); err != nil {
+		return nil, loaded.phaseError("load", err)
+	}
+	if loaded.api, err = loaded.apiValue(options); err != nil {
+		return nil, loaded.phaseError("install", err)
+	}
+	// Registrations made by init stay in the unpublished builder; a failure closes the generation before publication.
+	if _, err = guardedValue(func() (vm.Value, error) {
+		return generation.Invoke(ctx, loaded.entry.init, []vm.Value{loaded.api})
+	}); err != nil {
+		return nil, loaded.phaseError("init", err)
 	}
 	loaded.Extension, err = loaded.registrations.snapshot()
 	if err != nil {

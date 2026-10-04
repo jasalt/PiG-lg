@@ -15,7 +15,7 @@ import (
 
 func BenchmarkUICommandDispatch(b *testing.B) {
 	path := filepath.Join(b.TempDir(), "extension.lg")
-	if err := os.WriteFile(path, []byte(`(pig.extension/register-command! "prompt" {:handler (fn [c args] (pig.context/select! c "pick" ["first" "second"]))})`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "prompt" {:handler (fn [c args] (pig.context/select! c "pick" ["first" "second"]))}))`), 0o600); err != nil {
 		b.Fatal(err)
 	}
 	loaded, err := Load(b.Context(), LoadOptions{Entrypoint: path})
@@ -59,7 +59,8 @@ func (u *dialogUI) Notify(message, kind string) {
 func TestUIAwaitsNativePromptAndPropagatesReentryMarker(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.ui.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def seen (atom nil))
- (pig/register-command! "prompt" {:handler (fn [c args] (ctx/notify! c "hello") (reset! seen [(ctx/select! c "pick" ["α" "β"]) (ctx/confirm! c "sure" "question") (ctx/input! c "type" "placeholder")]))})`)
+ (defn init [api]
+ (pig/register-command! api "prompt" {:handler (fn [c args] (ctx/notify! c "hello") (reset! seen [(ctx/select! c "pick" ["α" "β"]) (ctx/confirm! c "sure" "question") (ctx/input! c "type" "placeholder")]))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	entered := make(chan struct{})
@@ -108,7 +109,8 @@ func TestUIAwaitsNativePromptAndPropagatesReentryMarker(t *testing.T) {
 func TestUIAvailabilityCancellationAndStaleContext(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.ui.modes (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def saved (atom nil)) (def seen (atom nil))
- (pig/register-command! "prompt" {:handler (fn [c args] (reset! saved c) (reset! seen [(ctx/has-ui? c) (ctx/select! c "title" []) (ctx/confirm! c "title" "message") (ctx/input! c "title")]))})`)
+ (defn init [api]
+ (pig/register-command! api "prompt" {:handler (fn [c args] (reset! saved c) (reset! seen [(ctx/has-ui? c) (ctx/select! c "title" []) (ctx/confirm! c "title" "message") (ctx/input! c "title")]))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	for _, mode := range []extension.ExtensionMode{extension.ModePrint, extension.ModeRPC} {

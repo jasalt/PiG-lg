@@ -76707,6 +76707,17 @@
       "shapeHash": "sha256:1308e2e58e033a63ea9692ed75c8c737d1759c4953f8048cc0018fe7148bf370"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.apiValue",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.apiValue",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(options LoadOptions) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:54372d11a903ee0bbda9525f2b26b0b0e7a9df7e045267c2a2a2f6ad09f92983"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.callbackContext",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.callbackContext",
@@ -76971,6 +76982,17 @@
       "shapeHash": "sha256:f253db07564d3f1b9d4553f4af970d268c2cdb2434f728e5ead33f3528b9459a"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#entryFunctions",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "entryFunctions",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "entryFunctions"
+      },
+      "shapeHash": "sha256:9fb4a0bfc76a244303967745c1aba2762a48cfcc9c75806b3858e220439f1a83"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#eventAdapter",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "eventAdapter",
@@ -76980,6 +77002,28 @@
         "type": "eventAdapter"
       },
       "shapeHash": "sha256:72cd80ecff244c05bb8dd49311937500b7c985af60ff2e077caa4a83f21429f9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#extensionFacade",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "extensionFacade",
+      "kind": "variable",
+      "exported": false,
+      "shape": {
+        "type": "string"
+      },
+      "shapeHash": "sha256:00404e686415370f1711c4d7acfa2905444d3cf23cef2e10c47d445ebe690f96"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#facadeNamespace",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "facadeNamespace",
+      "kind": "constant",
+      "exported": false,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#fieldPath",
@@ -77354,6 +77398,17 @@
         "type": "func[R any](result R) any"
       },
       "shapeHash": "sha256:071c24eca2222efb14d7915dff2d7276705af1d86557fd0fe61777d177c502f2"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#resolveEntry",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "resolveEntry",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() (entryFunctions, error)"
+      },
+      "shapeHash": "sha256:1caa89feb4458ee4852a75537109848e67d2c90311a1863b06a378914b5bd65c"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#scopedFunction",

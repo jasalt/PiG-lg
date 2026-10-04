@@ -22,8 +22,9 @@ func TestContextReadsNativeValuesAndRetainsHandle(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.context.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def saved (atom nil))
  (def observed (atom nil))
- (pig/register-command! "capture" {:handler (fn [c args] (reset! saved c))})
- (pig/register-command! "read" {:handler (fn [c args] (reset! observed {:cwd (ctx/cwd @saved) :mode (ctx/mode @saved) :hasUI (ctx/has-ui? @saved) :idle (ctx/is-idle? @saved) :model (ctx/model @saved) :tools (ctx/get-active-tools @saved) :allTools (ctx/get-all-tools @saved)}))})`)
+ (defn init [api]
+ (pig/register-command! api "capture" {:handler (fn [c args] (reset! saved c))})
+ (pig/register-command! api "read" {:handler (fn [c args] (reset! observed {:cwd (ctx/cwd @saved) :mode (ctx/mode @saved) :hasUI (ctx/has-ui? @saved) :idle (ctx/is-idle? @saved) :model (ctx/model @saved) :tools (ctx/get-active-tools @saved) :allTools (ctx/get-all-tools @saved)}))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	idle := true
@@ -72,7 +73,8 @@ func TestContextReadsNativeValuesAndRetainsHandle(t *testing.T) {
 func TestContextRequestAndRunCancellationAreDistinct(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.cancel.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def saved (atom nil)) (def signal (atom nil))
- (pig/register-command! "capture" {:handler (fn [c args] (reset! saved c) (reset! signal (ctx/signal c)))})`)
+ (defn init [api]
+ (pig/register-command! api "capture" {:handler (fn [c args] (reset! saved c) (reset! signal (ctx/signal c)))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	var run context.Context
@@ -116,7 +118,7 @@ func TestContextRequestAndRunCancellationAreDistinct(t *testing.T) {
 	if _, err := loaded.contextRead("cwd", vm.Map{}); err == nil {
 		t.Fatal("forged context accepted")
 	}
-	other := loadToolSource(t, `(pig.extension/register-command! "noop" {:handler (fn [c args] nil)})`)
+	other := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "noop" {:handler (fn [c args] nil)}))`)
 	if _, err := other.contextRead("cwd", saved); err == nil {
 		t.Fatal("foreign generation handle accepted")
 	}
@@ -130,7 +132,7 @@ func TestContextRequestAndRunCancellationAreDistinct(t *testing.T) {
 
 func BenchmarkContextLargeSessionRead(b *testing.B) {
 	path := filepath.Join(b.TempDir(), "extension.lg")
-	if err := os.WriteFile(path, []byte(`(pig.extension/register-command! "history" {:handler (fn [c args] (pig.context/get-entries c) nil)})`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-command! api "history" {:handler (fn [c args] (pig.context/get-entries c) nil)}))`), 0o600); err != nil {
 		b.Fatal(err)
 	}
 	loaded, err := Load(b.Context(), LoadOptions{Entrypoint: path})
@@ -162,7 +164,8 @@ func BenchmarkContextLargeSessionRead(b *testing.B) {
 func TestContextSessionEntriesAndBranchUseNativeSnapshots(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.history.fixture (:require [pig.extension :as pig] [pig.context :as ctx]))
  (def observed (atom nil))
- (pig/register-command! "history" {:handler (fn [c args] (reset! observed [(ctx/get-entries c) (ctx/get-branch c)]))})`)
+ (defn init [api]
+ (pig/register-command! api "history" {:handler (fn [c args] (reset! observed [(ctx/get-entries c) (ctx/get-branch c)]))}))`)
 	manager := codingagent.NewSession("context-history", t.TempDir())
 	for _, text := range []string{"first", "second", "third"} {
 		if _, err := manager.AppendCustomEntry("ordered", map[string]any{"text": text}); err != nil {

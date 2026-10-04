@@ -10,9 +10,15 @@ The loader must bind the live native runner guard and Session tool-refresh actio
 
 The existing MCP construction path remains unchanged. No MCP-specific notifications or cached event contexts are used by this builder.
 
+## Activation
+
+A selected source is a namespace that defines `(defn init [api] ...)` and may define `(defn shutdown [api] ...)`. `Load` installs the public `pig.extension` wrappers from the embedded `coding/extension/host/letgo/clj/pig/extension.cljc`. It then evaluates the source. Next it resolves `init` and `shutdown` in the namespace that is current after evaluation, normally the one declared by the source's `ns` form. Finally it calls `(init api)`. A source that declares no namespace, lacks `init`, or binds `init` or `shutdown` to a non-function fails loading. Registrations made by `init` stay in the unpublished builder. If `init` throws, `Load` closes the generation and publishes nothing.
+
+`api` is a plain Clojure map. `:extension-name`, `:extension-path` and `:extension-dir` hold identity strings. `:register-tool!`, `:register-command!` and `:on-event` hold Go-backed functions. The wrappers `register-tool!`, `register-command!` and `on-event` take `api` as their first argument and call the corresponding map entry. Top-level forms have no `api` and cannot register. Callbacks that capture `api` may register tools after publication, as described below. No `pig.internal.*` namespace exists; the Go functions are reachable only through `api`.
+
 ## Interpreted commands
 
-The selected source can call `(pig.extension/register-command! "name" {:description "Description" :handler (fn [c args] ...)})`. The handler receives an opaque callback token and the exact native argument string. The runner resolves conflicts and reports interpreted handler errors through its normal error listeners. Re-registering a command during loading replaces it without moving its first-registration position. Source metadata remains native registration metadata.
+`init` can call `(pig.extension/register-command! api "name" {:description "Description" :handler (fn [c args] ...)})`. The handler receives an opaque callback token and the exact native argument string. The runner resolves conflicts and reports interpreted handler errors through its normal error listeners. Re-registering a command during loading replaces it without moving its first-registration position. Source metadata remains native registration metadata.
 
 The native command call waits for interpreted execution to finish. No detached work is started. Cancellation while waiting for VM entry returns the original context error. Pure interpreted CPU work remains cooperative. Closing the generation drains VM entry and prevents later calls. Normal CLI-mode dispatch requires startup integration; internal runner tests alone do not prove it.
 
@@ -20,13 +26,13 @@ Source loading compiles and evaluates forms sequentially under the generation ga
 
 ## Interpreted lifecycle events
 
-`(pig.extension/on! :session-start (fn [c event] ...))` registers an awaited native lifecycle handler. The exact public keywords are `:session-start`, `:session-shutdown`, `:agent-start`, `:agent-end`, and `:agent-settled`. The event data retains native JSON field names and type strings, including underscores in `event.type`. Unknown, namespaced, string-valued, and unsupported event names fail registration.
+`(pig.extension/on-event api :session-start (fn [c event] ...))` registers an awaited native lifecycle handler. The exact public keywords are `:session-start`, `:session-shutdown`, `:agent-start`, `:agent-end`, and `:agent-settled`. The event data retains native JSON field names and type strings, including underscores in `event.type`. Unknown, namespaced, string-valued, and unsupported event names fail registration.
 
 The event table delegates to the corresponding typed `On<Event>` method. Handler order, dispatch snapshots, and error reporting belong to the native runner. A subscription registered from a callback applies to the next dispatch snapshot, not the dispatch in progress. Handler return values are ignored only for these native no-result events. Result-bearing events are not admitted by this table. Keep the generation alive through `session_shutdown` dispatch, then invalidate and close it.
 
 ## Integration evidence
 
-`Load` evaluates the selected source, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. These tests do not prove CLI integration. Runtime source routing, trust, reload, and Session retirement remain separate obligations. Full extension-tree regression remains a required acceptance gate.
+`Load` evaluates the selected source, calls `init`, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. These tests do not prove CLI integration. Runtime source routing, trust, reload, and Session retirement remain separate obligations. Full extension-tree regression remains a required acceptance gate.
 
 Run the focused tests with:
 

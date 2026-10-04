@@ -84,19 +84,20 @@ func TestLoadToolFixtureUsesNativeRunnerAfterLoad(t *testing.T) {
 }
 
 func TestLoadToolRegistrationAndSourceErrors(t *testing.T) {
-	for _, source := range []string{
-		`(pig.extension/register-tool! {:name "bad" :parameters [] :execute (fn [c p] nil)})`,
-		`(pig.extension/register-tool! {:name "bad" :parameters {} :execute "not a fn"})`,
-		`(pig.extension/register-tool! {:name "bad" :parameters {} :execute (fn [c p] nil) "execute" (fn [c p] nil)})`,
-		`(throw (ex-info "load failed" {}))`,
-		`(def broken\n (`,
+	for _, test := range []struct{ source, phase string }{
+		{`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "bad" :parameters [] :execute (fn [c p] nil)}))`, "init"},
+		{`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "bad" :parameters {} :execute "not a fn"}))`, "init"},
+		{`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "bad" :parameters {} :execute (fn [c p] nil) "execute" (fn [c p] nil)}))`, "init"},
+		{`(throw (ex-info "load failed" {}))`, "load"},
+		{`(def broken\n (`, "load"},
 	} {
+		source := test.source
 		path := filepath.Join(t.TempDir(), "broken.lg")
 		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		loaded, err := Load(t.Context(), LoadOptions{Entrypoint: path})
-		if err == nil || loaded != nil || !strings.Contains(err.Error(), path+": load:") {
+		if err == nil || loaded != nil || !strings.Contains(err.Error(), path+": "+test.phase+":") {
 			t.Fatalf("source %q: %v", source, err)
 		}
 	}
@@ -109,7 +110,7 @@ func TestLoadToolThrowMalformedResultAndCancellation(t *testing.T) {
 		{`{:content "bad"}`, "$.content"},
 		{`{:content [] :details {:unsupported :keyword}}`, "$.details.unsupported"},
 	} {
-		loaded := loadToolSource(t, `(pig.extension/register-tool! {:name "bad" :parameters {} :execute (fn [c p] `+test.body+`)})`)
+		loaded := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "bad" :parameters {} :execute (fn [c p] `+test.body+`)}))`)
 		runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 		tool := runner.Tools()[0].Definition
 		if _, err := tool.Execute(t.Context(), "bad", json.RawMessage(`{}`), nil); err == nil || !strings.Contains(err.Error(), test.want) || !strings.Contains(err.Error(), loaded.path) {
@@ -126,7 +127,7 @@ func TestLoadToolThrowMalformedResultAndCancellation(t *testing.T) {
 
 func BenchmarkLoadToolLifecycle(b *testing.B) {
 	path := filepath.Join(b.TempDir(), "extension.lg")
-	if err := os.WriteFile(path, []byte(`(pig.extension/register-tool! {:name "bench" :parameters {} :execute (fn [c p] {:content [{:type "text" :text (:text p)}]})})`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "bench" :parameters {} :execute (fn [c p] {:content [{:type "text" :text (:text p)}]})}))`), 0o600); err != nil {
 		b.Fatal(err)
 	}
 	for b.Loop() {
@@ -145,7 +146,7 @@ func BenchmarkLoadToolLifecycle(b *testing.B) {
 }
 
 func TestLoadToolHostCallbackCarriesReentryMarker(t *testing.T) {
-	loaded := loadToolSource(t, `(pig.extension/register-tool! {:name "probe" :parameters {} :execute (fn [c p] (pig.extension/register-tool! {:name "nested" :parameters {} :execute (fn [c p] {:content []})}) {:content []})})`)
+	loaded := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/register-tool! api {:name "probe" :parameters {} :execute (fn [c p] (pig.extension/register-tool! api {:name "nested" :parameters {} :execute (fn [c p] {:content []})}) {:content []})}))`)
 	var retained context.Context
 	var nested error
 	runtime := extension.CreateExtensionRuntime()

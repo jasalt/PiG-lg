@@ -13,9 +13,10 @@ import (
 
 func TestDynamicToolsPublishReplaceRefreshAndRetainOnRefreshError(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.dynamic.fixture (:require [pig.extension :as pig]))
- (pig/register-tool! {:name "early" :description "initial" :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "initial"}]})})
- (pig/register-command! "replace" {:handler (fn [c a] (pig/register-tool! {:name "early" :description a :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "replacement"}]})}))})
- (pig/register-command! "add" {:handler (fn [c a] (pig/register-tool! {:name "late" :description "late" :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "late result"}]})}))})`)
+ (defn init [api]
+ (pig/register-tool! api {:name "early" :description "initial" :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "initial"}]})})
+ (pig/register-command! api "replace" {:handler (fn [c a] (pig/register-tool! api {:name "early" :description a :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "replacement"}]})}))})
+ (pig/register-command! api "add" {:handler (fn [c a] (pig/register-tool! api {:name "late" :description "late" :parameters {:type "object"} :execute (fn [c p] {:content [{:type "text" :text "late result"}]})}))}))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	var refreshFailure error

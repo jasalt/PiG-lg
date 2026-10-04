@@ -16,11 +16,12 @@ import (
 func TestLifecycleTypedPayloadsAndShutdownLifetime(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.lifecycle.fixture (:require [pig.extension :as pig]))
  (def seen (atom []))
- (pig/on! :session-start (fn [c e] (swap! seen conj e)))
- (pig/on! :agent-start (fn [c e] (swap! seen conj e)))
- (pig/on! :agent-end (fn [c e] (swap! seen conj e)))
- (pig/on! :agent-settled (fn [c e] (swap! seen conj e)))
- (pig/on! :session-shutdown (fn [c e] (swap! seen conj e)))`)
+ (defn init [api]
+ (pig/on-event api :session-start (fn [c e] (swap! seen conj e)))
+ (pig/on-event api :agent-start (fn [c e] (swap! seen conj e)))
+ (pig/on-event api :agent-end (fn [c e] (swap! seen conj e)))
+ (pig/on-event api :agent-settled (fn [c e] (swap! seen conj e)))
+ (pig/on-event api :session-shutdown (fn [c e] (swap! seen conj e))))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	events := []any{extension.SessionStartEvent{Type: "session_start"}, extension.AgentStartEvent{Type: "agent_start"}, extension.AgentEndEvent{Type: "agent_end"}, extension.AgentSettledEvent{Type: "agent_settled"}, extension.SessionShutdownEvent{Type: "session_shutdown"}}
@@ -53,11 +54,13 @@ func TestLifecycleTypedPayloadsAndShutdownLifetime(t *testing.T) {
 func TestLifecycleAwaitsHandlersInNativeOrderAndReportsErrors(t *testing.T) {
 	first := loadToolSource(t, `(ns pig.lifecycle.first (:require [pig.extension :as pig]))
  (def seen (atom []))
- (pig/on! :session-start (fn [c e] (swap! seen conj "first") (throw (ex-info "handler failed" {}))))
- (pig/on! :session-start (fn [c e] (swap! seen conj "second")))`)
+ (defn init [api]
+ (pig/on-event api :session-start (fn [c e] (swap! seen conj "first") (throw (ex-info "handler failed" {}))))
+ (pig/on-event api :session-start (fn [c e] (swap! seen conj "second"))))`)
 	second := loadToolSource(t, `(ns pig.lifecycle.second (:require [pig.extension :as pig]))
  (def seen (atom []))
- (pig/on! :session-start (fn [c e] (swap! seen conj "third")))`)
+ (defn init [api]
+ (pig/on-event api :session-start (fn [c e] (swap! seen conj "third"))))`)
 	runner := inproc.NewRunner([]extension.Extension{first.Extension, second.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	var reports []*extension.ExtensionError
@@ -100,7 +103,8 @@ func TestLifecycleAwaitsHandlersInNativeOrderAndReportsErrors(t *testing.T) {
 func TestLifecycleLateSubscriptionUsesNextDispatchSnapshot(t *testing.T) {
 	loaded := loadToolSource(t, `(ns pig.lifecycle.snapshot (:require [pig.extension :as pig]))
  (def seen (atom [])) (def added (atom false))
- (pig/on! :agent-start (fn [c e] (swap! seen conj "first") (if @added nil (do (reset! added true) (pig/on! :agent-start (fn [c e] (swap! seen conj "late")))))))`)
+ (defn init [api]
+ (pig/on-event api :agent-start (fn [c e] (swap! seen conj "first") (if @added nil (do (reset! added true) (pig/on-event api :agent-start (fn [c e] (swap! seen conj "late"))))))))`)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	for _, want := range [][]any{{"first"}, {"first", "first", "late"}} {
@@ -120,11 +124,11 @@ func TestLifecycleLateSubscriptionUsesNextDispatchSnapshot(t *testing.T) {
 
 func TestLifecycleRejectsUnknownUnsupportedAndMalformedRegistrations(t *testing.T) {
 	for _, source := range []string{
-		`(pig.extension/on! :unknown (fn [c e] nil))`,
-		`(pig.extension/on! :tool-result (fn [c e] nil))`,
-		`(pig.extension/on! :ns/session-start (fn [c e] nil))`,
-		`(pig.extension/on! "session-start" (fn [c e] nil))`,
-		`(pig.extension/on! :session-start "not a function")`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/on-event api :unknown (fn [c e] nil)))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/on-event api :tool-result (fn [c e] nil)))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/on-event api :ns/session-start (fn [c e] nil)))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/on-event api "session-start" (fn [c e] nil)))`,
+		`(ns pig.test.fixture (:require [pig.extension])) (defn init [api] (pig.extension/on-event api :session-start "not a function"))`,
 	} {
 		path := filepath.Join(t.TempDir(), "event.lg")
 		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {

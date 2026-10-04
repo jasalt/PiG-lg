@@ -30,7 +30,7 @@ The `pig.context` namespace provides `(notify! c message [kind])`, `(select! c t
 
 Each operation validates the context and delegates to the current native UI binding. Dialog calls wait for the native response and propagate its error. The request context includes the coordinator's reentry marker, so a host that synchronously calls back into the interpreter receives `ErrReentrant` instead of deadlocking. Native no-UI bindings retain native results: select/input return the empty string and confirm returns false. The bridge does not fabricate another mode-specific fallback. An explicitly bound RPC or TUI UI remains the host's implementation.
 
-Callback-time `pig.extension/register-tool!` updates the shared native registry. After `Loaded.Bind` connects the builder to a live native context, registration also invokes the native tool-refresh action. A refresh failure reaches the callback but does not undo the registered tool. Replacement keeps the native first-registration order. Stale bindings reject registration.
+Callback-time `(pig.extension/register-tool! api tool)` updates the shared native registry. After `Loaded.Bind` connects the builder to a live native context, registration also invokes the native tool-refresh action. A refresh failure reaches the callback but does not undo the registered tool. Replacement keeps the native first-registration order. Stale bindings reject registration.
 
 ## Execution and ownership
 
