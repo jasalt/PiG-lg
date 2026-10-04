@@ -1,0 +1,8 @@
+{
+  "tool-only": {"result": "echo: hi", "log": ["called hi"]},
+  "command": {"description": "Greet someone", "log": ["greet Ada"]},
+  "session-start": {"log": ["start startup"]},
+  "before-agent-start": {"system-prompt": "base +compat", "log": ["prompt do it"]},
+  "tool-hooks": {"bash-call": {"block": true, "reason": "no bash"}, "read-call": null, "bash-result-is-error": true, "read-result-is-error": null, "log": ["bash:false", "read:false"]},
+  "helper-entry": {"result": "5 words, longest quick"}
+}
