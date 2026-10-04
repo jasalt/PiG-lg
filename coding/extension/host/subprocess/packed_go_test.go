@@ -1047,7 +1047,12 @@ func TestPackedSDKFocusedComponentAndSessionActionsMatch(t *testing.T) {
 			bridge.SetActions(&HostCallbacks{
 				GetModelInfo: inputLimitsTestModel,
 				AppendEntry: func(customType string, data any, _ *DirectEntryAppend) error {
-					actions <- fmt.Sprintf("appendEntry:%s:%v", customType, data)
+					// Upstream loader.ts passes data unchanged to runtime.appendEntry; assert its JSON value, not Go's byte-slice formatting of RawMessage.
+					encoded, err := json.Marshal(data)
+					if err != nil {
+						return err
+					}
+					actions <- fmt.Sprintf("appendEntry:%s:%s", customType, encoded)
 					return nil
 				},
 				SetSessionName: func(name string) error {
