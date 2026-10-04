@@ -18,6 +18,7 @@ func TestResolveConventionalForms(t *testing.T) {
 		language string
 		form     Form
 		packable bool
+		entry    string
 	}{
 		{
 			name: "go factory", language: "go", form: Factory, packable: true,
@@ -70,6 +71,22 @@ func TestResolveConventionalForms(t *testing.T) {
 			},
 		},
 		{
+			name: "let-go exact factory", language: "let-go", form: Factory, entry: "review.lg",
+			prepare: func(t *testing.T, root string) string {
+				path := filepath.Join(root, "review.lg")
+				writeSourceTestFile(t, path, "(ns review)\n")
+				return path
+			},
+		},
+		{
+			name: "let-go conventional directory", language: "let-go", form: Factory, entry: "extension.lg",
+			prepare: func(t *testing.T, root string) string {
+				writeSourceTestFile(t, filepath.Join(root, "extension.lg"), "(ns review)\n")
+				writeSourceTestFile(t, filepath.Join(root, "helper.lg"), "(ns helper)\n")
+				return root
+			},
+		},
+		{
 			name: "node factory stays isolated", language: "node", form: Factory,
 			prepare: func(t *testing.T, root string) string {
 				writeSourceTestFile(t, filepath.Join(root, "index.js"), "export default function extension(pi) {}\n")
@@ -96,6 +113,9 @@ func TestResolveConventionalForms(t *testing.T) {
 			}
 			if definition.Language != tc.language || definition.Form != tc.form || definition.Packable != tc.packable {
 				t.Fatalf("definition = %#v", definition)
+			}
+			if tc.entry != "" && filepath.Base(definition.Entrypoint) != tc.entry {
+				t.Fatalf("entrypoint = %q, want %q", definition.Entrypoint, tc.entry)
 			}
 		})
 	}
@@ -164,6 +184,19 @@ func TestResolveRejectsAmbiguousAndNonstandardFactories(t *testing.T) {
 			},
 		},
 		{
+			name: "let-go directory without conventional entry", want: "extension.lg",
+			prepare: func(t *testing.T, root string) {
+				writeSourceTestFile(t, filepath.Join(root, "foo.lg"), "(ns foo)\n")
+			},
+		},
+		{
+			name: "let-go multiple candidate entries", want: "multiple let-go entry candidates",
+			prepare: func(t *testing.T, root string) {
+				writeSourceTestFile(t, filepath.Join(root, "foo.lg"), "(ns foo)\n")
+				writeSourceTestFile(t, filepath.Join(root, "bar.lg"), "(ns bar)\n")
+			},
+		},
+		{
 			name: "node multiple package entries", want: "resolves to 2 entrypoints",
 			prepare: func(t *testing.T, root string) {
 				writeSourceTestFile(t, filepath.Join(root, "package.json"), `{"pi":{"extensions":["one.js","two.js"]}}`)
@@ -188,6 +221,50 @@ func TestResolveRejectsAmbiguousAndNonstandardFactories(t *testing.T) {
 				t.Fatalf("Resolve error = %v, want %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestResolveLetGoMixedLanguageRoots(t *testing.T) {
+	for _, marker := range []string{"go.mod", "Cargo.toml", "pyproject.toml", "package.json", "helper.py", "index.js"} {
+		t.Run(marker, func(t *testing.T) {
+			root := t.TempDir()
+			writeSourceTestFile(t, filepath.Join(root, "extension.lg"), "(ns extension)\n")
+			writeSourceTestFile(t, filepath.Join(root, marker), "")
+			_, err := Resolve(root)
+			if err == nil || !strings.Contains(err.Error(), "multiple extension languages") || !strings.Contains(err.Error(), "let-go") {
+				t.Fatalf("mixed language root error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveLetGoRejectsGoSourceInParentModule(t *testing.T) {
+	parent := t.TempDir()
+	writeSourceTestFile(t, filepath.Join(parent, "go.mod"), "module example.com/parent\n\ngo 1.26\n")
+	root := filepath.Join(parent, "extension")
+	writeSourceTestFile(t, filepath.Join(root, "extension.lg"), "(ns extension)\n")
+	writeSourceTestFile(t, filepath.Join(root, "extension.go"), "package extension\n")
+	_, err := Resolve(root)
+	if err == nil || !strings.Contains(err.Error(), "multiple extension languages") {
+		t.Fatalf("mixed Go/let-go root error = %v", err)
+	}
+}
+
+func TestResolveLetGoUsesSelectedDirectoryLink(t *testing.T) {
+	parent := t.TempDir()
+	target := filepath.Join(parent, "target")
+	writeSourceTestFile(t, filepath.Join(target, "extension.lg"), "(ns extension)\n")
+	link := filepath.Join(parent, "extensions", "selected")
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	testenv.RequireDirectoryLink(t, target, link)
+	def, err := Resolve(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if def.Root != link || def.Entrypoint != filepath.Join(link, "extension.lg") || def.Language != "let-go" || def.Packable {
+		t.Fatalf("linked let-go definition = %#v", def)
 	}
 }
 

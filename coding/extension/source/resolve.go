@@ -39,7 +39,7 @@ func IsGoSDKModulePath(path string) bool {
 type Form string
 
 const (
-	// Factory is a conventional language factory hosted by a generated runner.
+	// Factory is a conventional language source that registers capabilities when loaded.
 	Factory Form = "factory"
 	// Standalone is an exact isolated executable or executable source.
 	Standalone Form = "standalone"
@@ -79,13 +79,14 @@ func Resolve(input string) (Definition, error) {
 		return resolveFile(absolute, info)
 	}
 	languages := detectLanguages(absolute)
-	if len(languages) == 0 && directoryHasGoSource(absolute) {
-		if _, err := findContainingGoModule(absolute); err == nil {
-			languages = []string{"go"}
+	if (len(languages) == 0 || slices.Contains(languages, "let-go")) && directoryHasGoSource(absolute) {
+		if _, err := findContainingGoModule(absolute); err == nil && !slices.Contains(languages, "go") {
+			languages = append(languages, "go")
+			slices.Sort(languages)
 		}
 	}
 	if len(languages) == 0 {
-		return Definition{}, fmt.Errorf("extension %s has no recognized factory or standalone source; use func Extension() *sdk.Extension, pub fn new_extension() -> Extension, def new_extension() -> Extension, a Node default export, or an exact executable", absolute)
+		return Definition{}, fmt.Errorf("extension %s has no recognized factory or standalone source; use func Extension() *sdk.Extension, pub fn new_extension() -> Extension, def new_extension() -> Extension, a Node default export, extension.lg, or an exact executable", absolute)
 	}
 	if len(languages) > 1 {
 		return Definition{}, fmt.Errorf("extension %s contains multiple extension languages %v; select one exact language root", absolute, languages)
@@ -99,6 +100,8 @@ func Resolve(input string) (Definition, error) {
 		return resolvePython(absolute)
 	case "node":
 		return resolveNode(absolute)
+	case "let-go":
+		return resolveLetGo(absolute)
 	default:
 		return Definition{}, fmt.Errorf("extension %s has unsupported language %q", absolute, languages[0])
 	}
@@ -106,6 +109,13 @@ func Resolve(input string) (Definition, error) {
 
 func resolveFile(path string, info os.FileInfo) (Definition, error) {
 	ext := strings.ToLower(filepath.Ext(path))
+	if ext == ".lg" {
+		if !info.Mode().IsRegular() {
+			return Definition{}, fmt.Errorf("let-go extension %s is not a regular file", path)
+		}
+		// pig additive (D89): exact interpreted sources use the native extension runner, not a subprocess cell.
+		return Definition{Language: "let-go", Form: Factory, Root: filepath.Dir(path), Entrypoint: path}, nil
+	}
 	if ext == ".js" || ext == ".mjs" || ext == ".cjs" || ext == ".ts" {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -152,11 +162,18 @@ func detectLanguages(root string) []string {
 	if exists(filepath.Join(root, "package.json")) {
 		languages = append(languages, "node")
 	}
-	if len(languages) > 0 {
+	hasMarker := len(languages) > 0
+	entries, _ := os.ReadDir(root)
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.ToLower(filepath.Ext(entry.Name())) == ".lg" {
+			languages = append(languages, "let-go")
+			break
+		}
+	}
+	if hasMarker {
 		slices.Sort(languages)
 		return languages
 	}
-	entries, _ := os.ReadDir(root)
 	for _, entry := range entries {
 		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			continue
@@ -605,6 +622,35 @@ func resolvePython(root string) (Definition, error) {
 		return Definition{Language: "python", Form: Standalone, Root: root, Entrypoint: mainPath}, nil
 	}
 	return Definition{}, fmt.Errorf("Python extension %s has no def new_extension() factory or executable main.py standalone", root)
+}
+
+func resolveLetGo(root string) (Definition, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return Definition{}, err
+	}
+	var candidates []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.ToLower(filepath.Ext(entry.Name())) == ".lg" {
+			candidates = append(candidates, entry.Name())
+		}
+	}
+	path := filepath.Join(root, "extension.lg")
+	info, err := os.Stat(path)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return Definition{}, fmt.Errorf("let-go extension %s is not a regular file", path)
+		}
+		// pig additive (D89): one conventional entry selects a trusted in-process source.
+		return Definition{Language: "let-go", Form: Factory, Root: root, Entrypoint: path}, nil
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return Definition{}, err
+	}
+	if len(candidates) > 1 {
+		return Definition{}, fmt.Errorf("let-go extension %s has multiple let-go entry candidates %v; select an exact .lg file or provide extension.lg", root, candidates)
+	}
+	return Definition{}, fmt.Errorf("let-go extension %s has no extension.lg entry; select an exact .lg file", root)
 }
 
 func resolveNode(root string) (Definition, error) {
