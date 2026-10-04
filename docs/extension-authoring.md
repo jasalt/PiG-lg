@@ -18,7 +18,7 @@ Read these files before adding or changing extension behavior:
 - Do not add a WASM runtime.
 - Do not add an embedded JavaScript runtime.
 - Do not add dynamic Go plugins or `plugin.Open`.
-- Do not add a general dynamic linked/in-process extension loader. The owner-approved D89 exception permits only trusted let-go `.lg` sources interpreted in-process through the existing native extension API and runner; it does not authorize another runtime or privileged scripting surface. Piglet builds
+- Do not add a general dynamic linked/in-process extension loader. The owner-approved D89 exception permits only trusted let-go `.lg` and `.cljc` sources interpreted in-process through the existing native extension API and runner; it does not authorize another runtime or privileged scripting surface. Piglet builds
   may fuse compatible reviewed Go SDK factories through the governed D31 path;
   the subprocess host remains the semantic reference.
 - Do not introduce multi-register (`RegisterPayload.Extensions`,
