@@ -76817,6 +76817,17 @@
       "shapeHash": "sha256:e464e6de3ad35418f6e6dfe34abdf0de696ea4b2b49704e3c41e4184b74f805f"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#newRegistrationBuilder",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "newRegistrationBuilder",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(identity github.com/MichaelKinsy/PiG/coding/extension.Extension) *registrationBuilder"
+      },
+      "shapeHash": "sha256:6f7927140be9547fa36619f6dee3a4e60619a5171e76e653626a6783c64b73f1"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#objectValue",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "objectValue",
@@ -76850,6 +76861,182 @@
       "shapeHash": "sha256:0ea8982d6455f7eadf56ebb50d7329d4f2f8ccce48fb4fdc8a23c35bdcfe567f"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "registrationBuilder"
+      },
+      "shapeHash": "sha256:f6f3c9a33952a12ed9da6c46d38595eebe27c24b74724a85e30b9229a6020196"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnAgentEnd",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnAgentEnd",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.AgentEndEvent) error) error"
+      },
+      "shapeHash": "sha256:d8971a14ea1efc55cb4743317030cd3ce2f91c6c069884c262db0bffa2fba771"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnAgentSettled",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnAgentSettled",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.AgentSettledEvent) error) error"
+      },
+      "shapeHash": "sha256:e580804dd67bb4fb6ea4733450a1328326db1b5a6b4c3c796632cd80d1ec0217"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnAgentStart",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnAgentStart",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.AgentStartEvent) error) error"
+      },
+      "shapeHash": "sha256:d7f265167eeae9f3b88294a4925fc7b437dd54313efae27891365052d5d5fcef"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnBeforeAgentStart",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnBeforeAgentStart",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.BeforeAgentStartEvent) (github.com/MichaelKinsy/PiG/coding/extension.BeforeAgentStartEventResult, error)) error"
+      },
+      "shapeHash": "sha256:25cdecad1c96d2df2a48a629eaf2c89e9fe2fe782e2a65fe94103a53e2513abd"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnSessionShutdown",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnSessionShutdown",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.SessionShutdownEvent) error) error"
+      },
+      "shapeHash": "sha256:9fdcb455e5046b788f4fa0c3b92782e6ce41b232ccf5420ed90e0e4e0849c9cf"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnSessionStart",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnSessionStart",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.SessionStartEvent) error) error"
+      },
+      "shapeHash": "sha256:a7e9364e2e0aa71790bb35cfdf08224db64539802bdf3531e8a495fcc8a9a8df"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnToolCall",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnToolCall",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.ToolCallEvent) (github.com/MichaelKinsy/PiG/coding/extension.ToolCallEventResult, error)) error"
+      },
+      "shapeHash": "sha256:2598b76c3de32e848ebeaaff8a83d8cc705b3b2cbc84bb2dc4c8f05b6962bf52"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.OnToolResult",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.OnToolResult",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(handler func(context.Context, github.com/MichaelKinsy/PiG/coding/extension.ToolResultEvent) (github.com/MichaelKinsy/PiG/coding/extension.ToolResultEventResult, error)) error"
+      },
+      "shapeHash": "sha256:651c568af7241be5cdfc73e3034c7b4d4d3ad47f4c032aa10a8a50ca860839ea"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.RegisterCommand",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.RegisterCommand",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(name string, options github.com/MichaelKinsy/PiG/coding/extension.CommandOptions) error"
+      },
+      "shapeHash": "sha256:73b099d8830c27819302ce345f8f8cffdf1ed37541fb6dffbf1499c50c5de2c8"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.RegisterTool",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.RegisterTool",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(tool github.com/MichaelKinsy/PiG/coding/extension.ToolDefinition) error"
+      },
+      "shapeHash": "sha256:6595a3ecff03c41eb37e0ab62dba8f0f474aa933f2bee4c21c21eeaf7d6c95bd"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.bind",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.bind",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(assertActive func() error, refreshTools func() error) error"
+      },
+      "shapeHash": "sha256:89dbd00ab321f4d3ad6ba4bdd02b515b62c8bb604d457e1ad0940676b1288582"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.checkActive",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.checkActive",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() error"
+      },
+      "shapeHash": "sha256:6af1cd6889de8772da28bb1f2998d0262659331d5ba93f6bf1933b49a3efd5e9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.close",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.close",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func()"
+      },
+      "shapeHash": "sha256:032e891204f123caf14d3d421fa9728efc3f31299c17e98859c219dccddd74fb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationBuilder.snapshot",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationBuilder.snapshot",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() (github.com/MichaelKinsy/PiG/coding/extension.Extension, error)"
+      },
+      "shapeHash": "sha256:4c8c8697977751f6ba719447c94a229330adb50799ad26ab7f4acf5de6faa28b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationResult",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "registrationResult",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func[R any](result R) any"
+      },
+      "shapeHash": "sha256:071c24eca2222efb14d7915dff2d7276705af1d86557fd0fe61777d177c502f2"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#sequenceValue",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "sequenceValue",
@@ -76859,6 +77046,17 @@
         "type": "func(value github.com/nooga/let-go/pkg/vm.Sequable, path string, depth int) (any, error)"
       },
       "shapeHash": "sha256:9711ae7e968494b23f5cae06ea6de48d8b5e3dcbeb1748a8bc59ee5514e4ecc8"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#subscribeRegistration",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "subscribeRegistration",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func[E any](b *registrationBuilder, event string, call func(context.Context, E) (any, error)) error"
+      },
+      "shapeHash": "sha256:d42a8442da3e6357ce18cb5c7429ba31b45cc83015bda5a22cfe8b7770b41bc1"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#toValue",
@@ -96213,6 +96411,17 @@
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/source#resolveGo",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/source",
       "name": "resolveGo",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(root string) (Definition, error)"
+      },
+      "shapeHash": "sha256:5e2c387582b4d16c66c329fd39eea85fe8ad42fb52a6e36050b0efe30b3cfe53"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/source#resolveLetGo",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/source",
+      "name": "resolveLetGo",
       "kind": "function",
       "exported": false,
       "shape": {
