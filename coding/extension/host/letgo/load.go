@@ -177,11 +177,12 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 	if err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
 	}
-	if err := registrationKeys(data, reflect.TypeFor[extension.ToolDefinition](), unsupportedToolKeys); err != nil {
+	fields, err := registrationFields(data, reflect.TypeFor[extension.ToolDefinition](), unsupportedToolKeys)
+	if err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
 	}
 	var definition extension.ToolDefinition
-	if err := decodeValue(data, &definition); err != nil {
+	if err := decodePlain(fields, &definition); err != nil {
 		return vm.NIL, l.phaseError("register tool", err)
 	}
 	if definition.Name == "" {
@@ -322,10 +323,11 @@ func (l *Loaded) registerCommand(value vm.Value) (vm.Value, error) {
 		Name string `json:"name"`
 		extension.CommandOptions
 	}
-	if err := registrationKeys(data, reflect.TypeOf(fields), unsupportedCommandKeys); err != nil {
+	plain, err := registrationFields(data, reflect.TypeOf(fields), unsupportedCommandKeys)
+	if err != nil {
 		return vm.NIL, l.phaseError("register command", err)
 	}
-	if err := decodeValue(data, &fields); err != nil {
+	if err := decodePlain(plain, &fields); err != nil {
 		return vm.NIL, l.phaseError("register command", err)
 	}
 	commandName, options := fields.Name, fields.CommandOptions
@@ -418,10 +420,13 @@ func takeField(value vm.Value, field string) (vm.Value, vm.Value, error) {
 	return found, value.(vm.Associative).Dissoc(keyword).Dissoc(text), nil
 }
 
-// registrationKeys rejects every key the native decoder would otherwise ignore, naming Kmet-only keys explicitly.
-// It inspects keys before converting values, so a Kmet callback value reports its key rather than its type.
-func registrationKeys(data vm.Value, native reflect.Type, unsupported map[string]string) error {
+// registrationFields validates a registration map's top-level keys and returns it keyed by native field names.
+// pig additive (D89): Kmet's kebab-case spellings (:execution-mode) and the native ones both name a field; both at once is a collision.
+// Only top-level keys are mapped, so schema bodies and other nested values keep their keys byte-for-byte.
+// Keys are inspected before values are converted, so a Kmet callback value reports its key rather than its type.
+func registrationFields(data vm.Value, native reflect.Type, unsupported map[string]string) (map[string]any, error) {
 	allowed := jsonFieldNames(native)
+	spellings := make(map[string]string)
 	var keys []string
 	sequence := data.(vm.Sequable)
 	for seq, i := sequence.Seq(), 0; i < data.(vm.Counted).RawCount() && seq != nil; seq, i = seq.Next(), i+1 {
@@ -431,19 +436,32 @@ func registrationKeys(data vm.Value, native reflect.Type, unsupported map[string
 		case vm.Keyword:
 			keys = append(keys, string(key))
 		default:
-			return fmt.Errorf("$: unsupported object key %T", key)
+			return nil, fmt.Errorf("$: unsupported object key %T", key)
 		}
 	}
 	slices.Sort(keys)
 	for _, key := range keys {
 		if reason, ok := unsupported[key]; ok {
-			return fmt.Errorf("%s: %s", fieldPath("$", key), reason)
+			return nil, fmt.Errorf("%s: %s", fieldPath("$", key), reason)
 		}
-		if !allowed[key] {
-			return fmt.Errorf("%s: unsupported registration key", fieldPath("$", key))
+		name := nativeKey(key)
+		if !allowed[name] {
+			return nil, fmt.Errorf("%s: unsupported registration key", fieldPath("$", key))
 		}
+		if previous, exists := spellings[name]; exists {
+			return nil, fmt.Errorf("$: keys %q and %q both name field %q", previous, key, name)
+		}
+		spellings[name] = key
 	}
-	return nil
+	plain, err := fromValue(data)
+	if err != nil {
+		return nil, err
+	}
+	fields := make(map[string]any, len(spellings))
+	for name, spelling := range spellings {
+		fields[name] = plain.(map[string]any)[spelling]
+	}
+	return fields, nil
 }
 
 // jsonFieldNames lists the JSON object names the native decoder accepts, including embedded struct fields.

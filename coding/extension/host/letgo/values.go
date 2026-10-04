@@ -38,7 +38,7 @@ func integerValue(number int64, path string) (vm.Value, error) {
 type keyMode uint8
 
 const (
-	// verbatimKeys keeps every key byte-for-byte: tool arguments, registration maps and opaque subtrees.
+	// verbatimKeys keeps every key byte-for-byte: tool arguments and opaque subtrees.
 	verbatimKeys keyMode = iota
 	// publicKeys maps native camelCase field names to kebab-case keywords for host-originated public data and back for results.
 	publicKeys

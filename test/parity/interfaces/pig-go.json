@@ -77785,15 +77785,15 @@
       "shapeHash": "sha256:4c8c8697977751f6ba719447c94a229330adb50799ad26ab7f4acf5de6faa28b"
     },
     {
-      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationKeys",
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationFields",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
-      "name": "registrationKeys",
+      "name": "registrationFields",
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(data github.com/nooga/let-go/pkg/vm.Value, native reflect.Type, unsupported map[string]string) error"
+        "type": "func(data github.com/nooga/let-go/pkg/vm.Value, native reflect.Type, unsupported map[string]string) (map[string]any, error)"
       },
-      "shapeHash": "sha256:52e413e40d2945821a9166d7762be5f33fcdb1ab7144511f501ebd065c71761f"
+      "shapeHash": "sha256:5782083db1587ee9f4e2f60bafeef06bc0261010975d6acd6df521d52e79ba5a"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#registrationResult",

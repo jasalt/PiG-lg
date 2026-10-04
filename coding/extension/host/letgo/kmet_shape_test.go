@@ -113,7 +113,8 @@ func TestToolAndCommandRegistrationRejectsMissingNamesAndUnsupportedKeys(t *test
 		{strings.Replace(tool, "%s", `:name "t" :prepare-arguments (fn [a] a)`, 1), `$["prepare-arguments"]: Kmet :prepare-arguments is not supported`},
 		{strings.Replace(tool, "%s", `:name "t" :title (fn [a] "x")`, 1), "$.title: Kmet :title is not supported"},
 		{strings.Replace(tool, "%s", `:name "t" :streams? true`, 1), `$["streams?"]: Kmet :streams? is not supported`},
-		{strings.Replace(tool, "%s", `:name "t" :execution-mode "parallel"`, 1), `$["execution-mode"]: unsupported registration key`},
+		{strings.Replace(tool, "%s", `:name "t" :execution-mode "parallel" :executionMode "parallel"`, 1), `keys "execution-mode" and "executionMode" both name field "executionMode"`},
+		{strings.Replace(tool, "%s", `:name "t" :execution-order "x"`, 1), `$["execution-order"]: unsupported registration key`},
 		{strings.Replace(tool, "%s", `:name "t" :contextual? "yes"`, 1), `$["contextual?"]: expected a boolean`},
 		{strings.Replace(command, "%s", ``, 1), "$.name: command requires a non-empty string name"},
 		{strings.Replace(command, "%s", `:name 12`, 1), "register command"},
@@ -203,5 +204,26 @@ func TestToolKmetDocumentationExampleLoadsWhereTheDecisionAllows(t *testing.T) {
 	}
 	if !runner.ExecuteCommand(t.Context(), "cmd", "") {
 		t.Fatal("Kmet command not handled")
+	}
+}
+
+func TestToolRegistrationAcceptsKebabAndNativeKeysWithVerbatimSchemas(t *testing.T) {
+	loaded := loadToolSource(t, `(ns pig.test.fixture (:require [pig.extension :as ext]))
+ (defn init [api]
+   (ext/register-tool! api {:name "kebab" :prompt-snippet "snippet" :execution-mode "parallel" :default-active false
+     :parameters {:type "object" :properties {:filePath {:type "string"} :max_count {:type "integer"}}}
+     :execute (fn [args] {:content ""})})
+   (ext/register-tool! api {:name "native" :promptSnippet "other" :executionMode "sequential"
+     :parameters {:type "object"} :execute (fn [args] {:content ""})}))`)
+	tools := loaded.Extension.RegisteredTools()
+	kebab, native := tools[0].Definition, tools[1].Definition
+	if kebab.PromptSnippet != "snippet" || kebab.ExecutionMode != "parallel" || kebab.DefaultActive == nil || *kebab.DefaultActive {
+		t.Fatalf("kebab definition %#v", kebab)
+	}
+	if native.PromptSnippet != "other" || native.ExecutionMode != "sequential" {
+		t.Fatalf("native definition %#v", native)
+	}
+	if want := `{"properties":{"filePath":{"type":"string"},"max_count":{"type":"integer"}},"type":"object"}`; string(kebab.Parameters) != want {
+		t.Fatalf("schema %s, want %s", kebab.Parameters, want)
 	}
 }

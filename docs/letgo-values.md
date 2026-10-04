@@ -22,7 +22,7 @@ Typed result decoding uses the native JSON decoders. The three sealed extension 
 
 ## Public key casing
 
-Owner decision 1A on `PiG-18s.25` gives host-originated public data Kmet's kebab-case keys. Re-casing belongs to the entry point, not the value. `publicValue` re-cases event payloads, context reads (including model snapshots and session entries) and UI results. `toolResultValue` and `decodePublicValue` map returned results back. Tool arguments, registration maps and `decodeValue` keep every key byte-for-byte.
+Owner decision 1A on `PiG-18s.25` gives host-originated public data Kmet's kebab-case keys. Re-casing belongs to the entry point, not the value. `publicValue` re-cases event payloads, context reads (including model snapshots and session entries) and UI results. `toolResultValue` and `decodePublicValue` map returned results back. Tool arguments and `decodeValue` keep every key byte-for-byte.
 
 A native key is re-cased only when it round-trips exactly. It must be lowerCamel: a lowercase letter, then lowercase letters and digits, with each later word starting with a single uppercase letter. `toolCallId` becomes `:tool-call-id`, `cacheWrite1h` becomes `:cache-write1h` and `inputCostPer1M` becomes `:input-cost-per1-m`. Keys with an uppercase run (an acronym such as `supportsOpenAIGrammarTools`), a leading uppercase letter, a digit first, `_` or `-` cross unchanged under the identifier rule above. Values are never re-cased, so type strings such as `before_agent_start` and `toolCall` stay native.
 
