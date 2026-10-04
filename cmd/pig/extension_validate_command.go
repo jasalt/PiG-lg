@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/MichaelKinsy/PiG/coding/extension"
+	"github.com/MichaelKinsy/PiG/coding/extension/host/letgo"
 	"github.com/MichaelKinsy/PiG/coding/extension/host/subprocess"
 	"github.com/MichaelKinsy/PiG/coding/extension/pigsdk"
 	extsource "github.com/MichaelKinsy/PiG/coding/extension/source"
@@ -216,6 +217,12 @@ func validationErrorReport(name string, err error) extensionValidationReport {
 		report.Code = loadErr.Code
 		report.StderrLog = loadErr.StderrLog
 	}
+	// pig additive (D89): an interpreted source reports the phase it failed in and its entrypoint.
+	if phaseErr, ok := errors.AsType[*letgo.PhaseError](err); ok {
+		report.Phase = phaseErr.Category()
+		report.Code = "let-go"
+		report.Path = phaseErr.Path
+	}
 	return report
 }
 
@@ -240,6 +247,13 @@ func validateExtensionRuntimes(input string) ([]extensionValidationReport, error
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
+	if isLetGoConfig(configs[0]) {
+		report, err := validateLetGoSource(ctx, abs, configs[0], definitionReports[0], definitions[0])
+		if err != nil {
+			return nil, err
+		}
+		return []extensionValidationReport{report}, nil
+	}
 	host := subprocess.NewHostWithConfigRoot(filepath.Dir(abs), codingagent.ConfigRoot())
 	defer host.Shutdown("validation complete")
 	loaded, loadErrors := host.LoadAll(ctx, configs)
@@ -265,7 +279,7 @@ func validateExtensionRuntimes(input string) ([]extensionValidationReport, error
 		}
 		reports = append(reports, extensionValidationReport{
 			Valid: true, Name: cfg.Name, Source: cfg.Source, Path: cfg.Path, Hash: hash,
-			Tools: mapKeys(ext.Tools), Commands: mapKeys(ext.Commands), Handlers: mapKeys(ext.Handlers),
+			Tools: sortedToolNames(ext), Commands: mapKeys(ext.Commands), Handlers: mapKeys(ext.Handlers),
 			Flags: mapKeys(ext.Flags), Shortcuts: shortcutKeys(ext.Shortcuts), Providers: host.ProviderNames(cfg.Name),
 			ToolDetails: toolDetailsFromExtension(ext), CommandDetails: commandDetailsFromExtension(ext),
 			Registered: true, Definition: definitionReports[i],
@@ -281,10 +295,11 @@ func validateExtensionRuntimes(input string) ([]extensionValidationReport, error
 // pig additive (D28): the toolDetails/commandDetails scannable-text surface
 // has no upstream equivalent.
 func toolDetailsFromExtension(ext *extension.Extension) []toolDetailReport {
-	names := mapKeys(ext.Tools)
+	names := sortedToolNames(ext)
 	out := make([]toolDetailReport, 0, len(names))
 	for _, name := range names {
-		def := ext.Tools[name].Definition
+		registered, _ := ext.RegisteredTool(name)
+		def := registered.Definition
 		out = append(out, toolDetailReport{
 			Name:             name,
 			Label:            def.Label,
@@ -647,6 +662,13 @@ func splitInstallSetSources(value string) []string {
 		return r == ',' || r == '\n' || r == '\t' || r == ' '
 	})
 	return compactStrings(fields)
+}
+
+// sortedToolNames reads the extension's tool registry, which holds the tools an interpreted extension registered as well as a subprocess one's.
+func sortedToolNames(ext *extension.Extension) []string {
+	names := ext.RegisteredToolNames()
+	slices.Sort(names)
+	return names
 }
 
 func mapKeys[V any](m map[string]V) []string {

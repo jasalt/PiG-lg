@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/nooga/let-go/pkg/vm"
 
@@ -31,17 +32,19 @@ type LoadOptions struct {
 // Loaded owns one interpreted extension generation and its native registrations.
 // Invalidate its runner before closing it; Close drains interpreter entry cooperatively.
 type Loaded struct {
-	Extension      extension.Extension
-	generation     *Generation
-	registrations  *registrationBuilder
-	path           string
-	loadingContext context.Context
-	current        *invocationToken // accessed only under the generation's VM gate
-	api            vm.Value
-	entry          entryFunctions
-	activated      bool         // init returned; shutdown is owed
-	shutdownRan    bool         // accessed only under the generation's VM gate
-	latestSignal   *signalToken // accessed only under the generation's VM gate
+	Extension       extension.Extension
+	generation      *Generation
+	registrations   *registrationBuilder
+	path            string
+	loadingContext  context.Context
+	current         *invocationToken // accessed only under the generation's VM gate
+	api             vm.Value
+	entry           entryFunctions
+	registerMu      sync.Mutex
+	registerFailure *PhaseError  // the latest registration the host rejected, for classifying a failed init
+	activated       bool         // init returned; shutdown is owed
+	shutdownRan     bool         // accessed only under the generation's VM gate
+	latestSignal    *signalToken // accessed only under the generation's VM gate
 }
 
 // pig additive (D89): an invocationToken is the internal callback handle captured by context-map closures; it never reaches the interpreter itself.
@@ -124,7 +127,7 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 		loaded.entry, resolveErr = resolveEntry()
 		return vm.NIL, resolveErr
 	}); err != nil {
-		return nil, loaded.phaseError("load", err)
+		return nil, loaded.phaseError("init", err)
 	}
 	if loaded.api, err = loaded.apiValue(options); err != nil {
 		return nil, loaded.phaseError("install", err)
@@ -133,7 +136,7 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	if _, err = guardedValue(func() (vm.Value, error) {
 		return generation.Invoke(ctx, loaded.entry.init, []vm.Value{loaded.api})
 	}); err != nil {
-		return nil, loaded.phaseError("init", err)
+		return nil, loaded.initError(err)
 	}
 	loaded.activated = true
 	loaded.Extension, err = loaded.registrations.snapshot()
@@ -143,8 +146,30 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	return loaded, nil
 }
 
-func (l *Loaded) phaseError(phase string, err error) error {
-	return fmt.Errorf("%s: %s: %w", l.path, phase, err)
+func (l *Loaded) phaseError(phase string, err error) error { return l.newPhaseError(phase, err) }
+
+func (l *Loaded) newPhaseError(phase string, err error) *PhaseError {
+	failure := &PhaseError{Path: l.path, Phase: phase, Err: err}
+	if failure.Category() == PhaseRegister {
+		l.registerMu.Lock()
+		l.registerFailure = failure
+		l.registerMu.Unlock()
+	}
+	return failure
+}
+
+// initError is the failure of init. The interpreter flattens a host failure it propagates, so a registration the host rejected inside
+// init would read as a bare init failure; when init's error carries the message of the registration failure this load recorded, the
+// failure keeps its init text and reports the register category.
+func (l *Loaded) initError(err error) error {
+	failure := l.newPhaseError("init", err)
+	l.registerMu.Lock()
+	registered := l.registerFailure
+	l.registerMu.Unlock()
+	if registered != nil && strings.Contains(err.Error(), registered.Error()) {
+		failure.category = PhaseRegister
+	}
+	return failure
 }
 
 func guardedValue(call func() (vm.Value, error)) (value vm.Value, err error) {

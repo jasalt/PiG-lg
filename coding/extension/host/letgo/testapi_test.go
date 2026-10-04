@@ -30,7 +30,7 @@ func TestLoadForTestCapturesInitRegistrationsWithoutSession(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	want := Registrations{Tools: []string{"first", "second"}, Commands: []string{"where"}, Events: map[string]int{"session-start": 2, "agent-end": 1}}
+	want := Registrations{Tools: []string{"first", "second"}, Commands: []string{"where"}, Events: map[string]int{"session-start": 2, "agent-end": 1}, Handlers: []string{"agent_end", "session_start"}}
 	if !reflect.DeepEqual(registrations, want) {
 		t.Fatalf("registrations %#v, want %#v", registrations, want)
 	}

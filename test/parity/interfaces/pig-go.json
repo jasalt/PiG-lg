@@ -51781,6 +51781,17 @@
       "shapeHash": "sha256:ba0f052c4fb3ade10eac11070bf90ee2ca1d027ce3b841ad1cd39fd56e171688"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#sortedToolNames",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "sortedToolNames",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ext *github.com/MichaelKinsy/PiG/coding/extension.Extension) []string"
+      },
+      "shapeHash": "sha256:72c95ed01033ab5400415edff2c5ebba6b7cc0c8e9346bb732223bc6f87cbc61"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#sourceInfoFromResourceItem",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "sourceInfoFromResourceItem",
@@ -53220,6 +53231,17 @@
         "type": "func(cwd string, sm *github.com/MichaelKinsy/PiG/internal/codingagent.SettingsManager, sources []string, jsonOut bool) int"
       },
       "shapeHash": "sha256:a631e9384554c435ac6a51f94b7c7593cfd970b0771bbd8bb8048fa2af3fed07"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#validateLetGoSource",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "validateLetGoSource",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, abs string, config github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig, definitionReport *extensionValidationSourceReport, definition *github.com/MichaelKinsy/PiG/coding/extension/source.Definition) (extensionValidationReport, error)"
+      },
+      "shapeHash": "sha256:6dd63812e7267e592b66d2ed6965f907813f8ae584a787de8d9b02efcd69eff3"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#validateResolvedInstallSources",
@@ -77147,6 +77169,17 @@
       "shapeHash": "sha256:f81f07bd636267a7b3f95db4cd82fb1af807e624faed6098f5eff12fc67f40c4"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.initError",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.initError",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(err error) error"
+      },
+      "shapeHash": "sha256:757366f347b77fab18c96d624ec5206676e19d18aa9ceb4a88a9343171f303d5"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.installContext",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "Loaded.installContext",
@@ -77222,6 +77255,17 @@
         "type": "func(value github.com/nooga/let-go/pkg/vm.Value) (*invocationToken, *github.com/MichaelKinsy/PiG/coding/extension.Context, error)"
       },
       "shapeHash": "sha256:a077bcdba6d7dc1142a9656c16301dcd7d2cd1d262d53d8bc11d9d23fd4050f7"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.newPhaseError",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "Loaded.newPhaseError",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(phase string, err error) *PhaseError"
+      },
+      "shapeHash": "sha256:a08c4aa1bf8532d81a2efaeb58d0d449d2d854b5575f70135800680009819379"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Loaded.onEvent",
@@ -77332,6 +77376,105 @@
         "type": "func() *RuntimeHost"
       },
       "shapeHash": "sha256:7dc16f67a6611e570a5c594fe493b14b6e8c844e686808f495d0377a7f10d290"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseCallback",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseCallback",
+      "kind": "constant",
+      "exported": true,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseError",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseError",
+      "kind": "type",
+      "exported": true,
+      "shape": {
+        "type": "PhaseError"
+      },
+      "shapeHash": "sha256:0f9d71b84901a4e34725a24592f9464d7f58e5a577f697efe7bcb38caa352ef9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseError.Category",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseError.Category",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() string"
+      },
+      "shapeHash": "sha256:31cac5b359d9888bdbe3fe08c486b2e404a728edce6e0aaaa60e59ceafc92fb5"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseError.Error",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseError.Error",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() string"
+      },
+      "shapeHash": "sha256:31cac5b359d9888bdbe3fe08c486b2e404a728edce6e0aaaa60e59ceafc92fb5"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseError.Unwrap",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseError.Unwrap",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() error"
+      },
+      "shapeHash": "sha256:6af1cd6889de8772da28bb1f2998d0262659331d5ba93f6bf1933b49a3efd5e9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseEval",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseEval",
+      "kind": "constant",
+      "exported": true,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseInit",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseInit",
+      "kind": "constant",
+      "exported": true,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseRegister",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseRegister",
+      "kind": "constant",
+      "exported": true,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#PhaseShutdown",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "PhaseShutdown",
+      "kind": "constant",
+      "exported": true,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#Registrations",

@@ -3,6 +3,7 @@ package letgo
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/MichaelKinsy/PiG/coding/extension"
@@ -12,8 +13,10 @@ import (
 type Registrations struct {
 	Tools    []string
 	Commands []string
-	// Events counts handlers by public event keyword, e.g. "session-start".
+	// Events counts handlers by public event keyword, e.g. "session-start". It covers the no-result events and the result hooks.
 	Events map[string]int
+	// Handlers lists the native names of the events that have at least one handler, sorted, in the form a subprocess report uses.
+	Handlers []string
 }
 
 // pig additive (D89): a test-only inventory over the real loader, not a fake production API.
@@ -38,10 +41,20 @@ func (l *Loaded) registrationsSummary() Registrations {
 	for _, tool := range l.Extension.RegisteredTools() {
 		summary.Tools = append(summary.Tools, tool.Definition.Name)
 	}
+	names := make([]string, 0, len(lifecycleEvents)+len(resultEvents))
 	for _, adapter := range lifecycleEvents {
-		if count := len(l.Extension.EventHandlers(strings.ReplaceAll(adapter.name, "-", "_"))); count > 0 {
-			summary.Events[adapter.name] = count
+		names = append(names, adapter.name)
+	}
+	for name := range resultEvents {
+		names = append(names, name)
+	}
+	for _, name := range names {
+		native := strings.ReplaceAll(name, "-", "_")
+		if count := len(l.Extension.EventHandlers(native)); count > 0 {
+			summary.Events[name] = count
+			summary.Handlers = append(summary.Handlers, native)
 		}
 	}
+	slices.Sort(summary.Handlers)
 	return summary
 }

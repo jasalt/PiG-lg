@@ -382,6 +382,9 @@ func TestLetGoReloadPublishesFreshGenerationsAndRetiresTheOldOnes(t *testing.T) 
 	// A replacement that does not even parse is not loaded, as for any extension that fails to reload; healthy extensions stay.
 	env.write(t, entry, "(ns reload.fixture (defn init [api] (")
 	reload("r2")
+	if stderr := p.stderr.String(); !strings.Contains(stderr, "extension reload: extension \"reload\": "+entry+": load:") {
+		t.Fatalf("a failed reload names no source or phase on stderr:\n%s", stderr)
+	}
 	names = rpcCommandNames(t, p, "c3")
 	if slices.Contains(names, "ver") || slices.Contains(names, "added") || !slices.Contains(names, "reloadme") {
 		t.Fatalf("commands after a broken replacement %v", names)
@@ -473,4 +476,56 @@ func TestLetGoOwnerRetiresTheOldGenerationAfterItsRunningCallbackFinishes(t *tes
 		}
 	}
 	waitForFile(t, shutdown, "v2")
+}
+
+func TestLetGoDiagnosticsNameTheSourceAndPhaseAtEveryStage(t *testing.T) {
+	env := newLetGoStartupEnv(t)
+	t.Run("resolve", func(t *testing.T) {
+		missing := filepath.Join(env.home, "missing.lg")
+		run, _ := env.runJSON(t, "hello", "-e", missing)
+		requireUpstreamExtensionFailure(t, run, `Error: Failed to load extension "`+missing+`"`)
+	})
+	t.Run("eval", func(t *testing.T) {
+		bad := env.write(t, filepath.Join(env.home, "eval.lg"), `(ns diag.eval (defn init [api] (`)
+		run, _ := env.runJSON(t, "hello", "-e", bad)
+		requireUpstreamExtensionFailure(t, run, `Error: Failed to load extension "`+bad+`"`)
+		if !strings.Contains(run.stderr, bad+": load:") {
+			t.Fatalf("stderr names no eval phase:\n%s", run.stderr)
+		}
+	})
+	t.Run("init", func(t *testing.T) {
+		bad := env.write(t, filepath.Join(env.home, "init.lg"), `(ns diag.init) (defn init [api] (throw (ex-info "init exploded" {})))`)
+		run, _ := env.runJSON(t, "hello", "-e", bad)
+		requireUpstreamExtensionFailure(t, run, `Error: Failed to load extension "`+bad+`"`)
+		if !strings.Contains(run.stderr, bad+": init:") || !strings.Contains(run.stderr, "init exploded") {
+			t.Fatalf("stderr names no init phase or cause:\n%s", run.stderr)
+		}
+	})
+	t.Run("register", func(t *testing.T) {
+		bad := env.write(t, filepath.Join(env.home, "register.lg"), `(ns diag.register (:require [pig.extension :as ext]))
+(defn init [api] (ext/register-tool! api {:name "t" :params {:x {:type :string}} :execute (fn [args] nil)}))`)
+		run, _ := env.runJSON(t, "hello", "-e", bad)
+		requireUpstreamExtensionFailure(t, run, `Error: Failed to load extension "`+bad+`"`)
+		if !strings.Contains(run.stderr, "register tool: $.params") {
+			t.Fatalf("stderr names no register phase or field:\n%s", run.stderr)
+		}
+	})
+	t.Run("callback", func(t *testing.T) {
+		entry := env.write(t, filepath.Join(env.home, "callback.lg"), `(ns diag.callback (:require [pig.extension :as ext]))
+(defn init [api] (ext/register-command! api {:name "boom" :handler (fn [ctx args] (throw (ex-info "command exploded" {})))}))`)
+		p := startRPCProcessAt(t, env.cwd, []string{"HOME=" + env.home, "PIG_HOME=" + env.home, "PIG_CODING_AGENT_DIR=" + env.agentDir, "PIG_TEST_FAUX=1", "PIG_OFFLINE=1"}, "--no-session", "-e", entry)
+		p.send(`{"id":"run","type":"prompt","message":"/boom"}`)
+		p.await("extension_error for the failing command", func(record rpcRecord) bool {
+			if record["type"] != "extension_error" {
+				return false
+			}
+			message, _ := record["error"].(string)
+			// The runner reports a command failure under the native "command:<name>" path; the message names the source and phase.
+			if record["event"] != "command" || record["extensionPath"] != "command:boom" || !strings.Contains(message, entry+": execute command boom:") || !strings.Contains(message, "command exploded") {
+				t.Fatalf("extension_error = %v", record)
+			}
+			return true
+		})
+		p.closeAndWait("after the command error")
+	})
 }

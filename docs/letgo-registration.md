@@ -76,6 +76,24 @@ Limits. Interpreter entry is serialized process-wide, so a reload cannot stage w
 
 `cmd/pig/letgo_startup_test.go` runs the built binary in a hermetic home: a `.lg` tool and shutdown in JSON mode with output kept off the stream, a `.cljc` directory entry with a helper namespace, a command listed and dispatched in RPC mode, a failing `init`, a tool conflict, an untrusted project source that never evaluates beside the same source evaluating once trusted, and `--no-extensions` with and without `-e`. `TestLetGoReloadPublishesFreshGenerationsAndRetiresTheOldOnes` (RPC) and `TestLetGoReloadInInteractiveMode` (PTY) edit a command, remove one, add one and replace a source that does not parse, through a Go extension's `ctx.reload()` and the TUI's `/reload`. `TestLetGoOwnerRetiresTheOldGenerationAfterItsRunningCallbackFinishes` holds an old callback open across the swap and checks that shutdown waits for it, a call to the retired generation fails with `ErrClosed`, and `Close` is idempotent.
 
+## Diagnostics and validation
+
+Every failure of an interpreted source is a `PhaseError`: `<source path>: <phase>: <cause>`. The path is the selected entrypoint and the cause names the offending field for a malformed value, for example `$.params: Kmet :params shorthand is not supported`. The phase falls into one category:
+
+| Category | When | Where it surfaces |
+| --- | --- | --- |
+| resolve | the selected path is missing or not a let-go source | `Failed to load extension "<path>"` before any evaluation |
+| eval | reading, compiling or evaluating the source's forms, including a top-level host call | `Failed to load extension`, phase `load` |
+| init | no namespace, `init` missing or not a function, `init` throws | `Failed to load extension`, phase `init` |
+| register | the host rejects a registration, such as a bad schema or an unsupported Kmet key | `Failed to load extension`, phase `register tool` or `register command` |
+| callback | a tool, command, event, hook or context call after loading | the runner's extension error with the source and `execute ...` phase |
+| shutdown | the optional `shutdown` throws | a warning; teardown still completes |
+| reload | any of the above while staging a reload | `extension reload: extension "<name>": <source>: <phase>: ...` on standard error; the source is left out |
+
+A failure in the register category inside `init` keeps its `init` text and reports the register category, because the interpreter flattens the host error it propagates.
+
+`pig install <source> --validate-only [--json]` validates a let-go source the way it validates a subprocess extension, by loading it for real. A fresh generation evaluates the source and calls `init` against the real registration builder, which is code execution under the same trust as loading a subprocess extension. Validation dispatches no event, tool or command and disposes the generation before it returns: a generation whose `init` completed runs its optional `shutdown` once, because `init` may have acquired resources, and a failing `shutdown` is a report warning. A generation that failed to load is disposed by the loader and never runs `shutdown`. The JSON report lists the tools, commands and handler event names that `init` registered, plus the scannable tool and command text, and a failure reports `phase` with the category above, `code` `let-go` and the entrypoint as `path`. `letgo.LoadForTest` is the same inventory without a CLI.
+
 ## Integration evidence
 
 `Load` evaluates the selected source, calls `init`, registers interpreted callbacks through the builder, and publishes the native `extension.Extension`. The loader fixture tests invoke retained tools through the native runner's registered definitions after loading returns. They verify replacement order, source metadata, typed results, errors, cancellation, close, and callback-time registration through the shared registry. Binary-level tests cover CLI startup, described above. Reload and Session replacement are covered in Reload and replacement above. Full extension-tree regression remains a required acceptance gate.
