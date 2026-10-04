@@ -92,8 +92,10 @@ Create a standalone:
 pig extension init ./my-extension --lang go --isolated
 ```
 
-Supported scaffold languages are Go, Python, and Rust. The scaffold writes no
-YAML file. Pig stages the matching SDK under the active config root.
+Supported scaffold languages are Go, Python, Rust, and let-go. The scaffold
+writes no YAML file. Pig stages the matching SDK under the active config root.
+A let-go scaffold (`--lang let-go`) is interpreted source, so it has no SDK to
+stage and no build step; see [Writing let-go extensions](letgo-extensions.md).
 
 ## Validation
 

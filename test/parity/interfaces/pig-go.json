@@ -46083,6 +46083,50 @@
       "shapeHash": "sha256:d9ee32044f7e623a46d2f7fec70ffc60fbd680b844bca744fd2c2d191672a29a"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoCorePath",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoCorePath",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string) string"
+      },
+      "shapeHash": "sha256:7d508d280c61decf247115e90b8749e71ea5dfc4d0ae712cc664fb5de63b74fe"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoCoreTemplate",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoCoreTemplate",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string) string"
+      },
+      "shapeHash": "sha256:7d508d280c61decf247115e90b8749e71ea5dfc4d0ae712cc664fb5de63b74fe"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoInitLanguage",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoInitLanguage",
+      "kind": "constant",
+      "exported": false,
+      "shape": {
+        "type": "untyped string"
+      },
+      "shapeHash": "sha256:7eabd192b9f1c379102c8dc793881875f1f949f6b752e15a20b93080cb0b311d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoNamespace",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoNamespace",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string) string"
+      },
+      "shapeHash": "sha256:7d508d280c61decf247115e90b8749e71ea5dfc4d0ae712cc664fb5de63b74fe"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "letGoOwner",
@@ -46171,6 +46215,28 @@
       "shapeHash": "sha256:1e2ed086a724d12a6a3da9f58097e9928d38805bb3f68d1d1d48e2a4cb29bec7"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoPortableTemplate",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoPortableTemplate",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string) string"
+      },
+      "shapeHash": "sha256:7d508d280c61decf247115e90b8749e71ea5dfc4d0ae712cc664fb5de63b74fe"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoScaffoldFiles",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoScaffoldFiles",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string, letGoSource bool) []scaffoldFile"
+      },
+      "shapeHash": "sha256:29bdf450ae547aa61f2a861273b2d93e454ca0d884893474aa5f04ade1e27be3"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "letGoSet",
@@ -46213,6 +46279,17 @@
         "type": "func() bool"
       },
       "shapeHash": "sha256:f632619397f10a7f0e472ad47d2824ec7e080d15ac9eb0994e24800757b3fb96"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSourceTemplate",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoSourceTemplate",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(name string) string"
+      },
+      "shapeHash": "sha256:7d508d280c61decf247115e90b8749e71ea5dfc4d0ae712cc664fb5de63b74fe"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#linkDiagnostics",
@@ -51226,9 +51303,9 @@
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(lang string, name string, dirBase string, sdkDir string, isolated bool, login bool) []scaffoldFile"
+        "type": "func(lang string, name string, dirBase string, sdkDir string, isolated bool, login bool, letGoSource bool) []scaffoldFile"
       },
-      "shapeHash": "sha256:6dc0dd0e9efc00461211a17659a8ea405bdbab156062f7a74db94d32b168a442"
+      "shapeHash": "sha256:7e1ddcff549b6fb595fffcbbe983799ffa488ddcbac8743a25adf177661606ea"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#selectEmbeddedOwnerCells",

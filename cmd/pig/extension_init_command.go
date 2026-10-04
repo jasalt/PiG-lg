@@ -20,6 +20,7 @@ type extensionInitOptions struct {
 	login         bool
 	force         bool
 	isolated      bool
+	letGoSource   bool
 	jsonOutput    bool
 	help          bool
 	invalidOption string
@@ -41,7 +42,7 @@ type scaffoldFile struct {
 	mode os.FileMode
 }
 
-var initLanguages = []string{"go", "python", "rust"}
+var initLanguages = []string{"go", "python", "rust", letGoInitLanguage}
 
 // runExtensionInit scaffolds a minimal, self-contained extension whose
 // versioned SDK dependency is resolved by Pig to the staged copy under the
@@ -69,6 +70,12 @@ func runExtensionInit(args []string) int {
 	if !isInitLanguage(opts.lang) {
 		return printExtensionInitReport(extensionInitReport{Language: opts.lang, Error: fmt.Sprintf("unsupported --lang %q; supported: %s", opts.lang, strings.Join(initLanguages, ", "))}, opts.jsonOutput)
 	}
+	if opts.letGoSource && opts.lang != letGoInitLanguage {
+		return printExtensionInitReport(extensionInitReport{Language: opts.lang, Error: "--lg applies to --lang " + letGoInitLanguage + " only"}, opts.jsonOutput)
+	}
+	if opts.lang == letGoInitLanguage && (opts.login || opts.isolated) {
+		return printExtensionInitReport(extensionInitReport{Language: opts.lang, Error: "--login and --isolated do not apply to --lang " + letGoInitLanguage}, opts.jsonOutput)
+	}
 	if opts.login && opts.lang != "go" {
 		return printExtensionInitReport(extensionInitReport{Language: opts.lang, Error: "--login currently supports --lang go only"}, opts.jsonOutput)
 	}
@@ -93,16 +100,20 @@ func runExtensionInit(args []string) int {
 
 	// Stage the SDK for this language so the first Pig-managed cold build is
 	// ready even when no interactive session has run under this config root.
-	configRoot := codingagent.ConfigRoot()
-	if err := pigsdk.EnsureSyncedLang(configRoot, opts.lang); err != nil {
-		return printExtensionInitReport(extensionInitReport{Name: name, Path: root, Language: opts.lang, Error: fmt.Sprintf("stage %s SDK: %v", opts.lang, err)}, opts.jsonOutput)
-	}
-	sdkDir, err := pigsdk.SDKDirFor(configRoot, opts.lang)
-	if err != nil {
-		return printExtensionInitReport(extensionInitReport{Name: name, Path: root, Language: opts.lang, Error: err.Error()}, opts.jsonOutput)
+	// pig additive (D89): a let-go source is interpreted in process, so it has no SDK to stage.
+	var sdkDir string
+	if opts.lang != letGoInitLanguage {
+		configRoot := codingagent.ConfigRoot()
+		if err := pigsdk.EnsureSyncedLang(configRoot, opts.lang); err != nil {
+			return printExtensionInitReport(extensionInitReport{Name: name, Path: root, Language: opts.lang, Error: fmt.Sprintf("stage %s SDK: %v", opts.lang, err)}, opts.jsonOutput)
+		}
+		var err error
+		if sdkDir, err = pigsdk.SDKDirFor(configRoot, opts.lang); err != nil {
+			return printExtensionInitReport(extensionInitReport{Name: name, Path: root, Language: opts.lang, Error: err.Error()}, opts.jsonOutput)
+		}
 	}
 
-	files := scaffoldFiles(opts.lang, name, filepath.Base(root), sdkDir, opts.isolated, opts.login)
+	files := scaffoldFiles(opts.lang, name, filepath.Base(root), sdkDir, opts.isolated, opts.login, opts.letGoSource)
 
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return printExtensionInitReport(extensionInitReport{Name: name, Path: root, Language: opts.lang, SDKPath: sdkDir, Error: err.Error()}, opts.jsonOutput)
@@ -139,7 +150,9 @@ func runExtensionInit(args []string) int {
 	for _, rel := range written {
 		fmt.Printf("  %s\n", rel)
 	}
-	fmt.Printf("\nSDK: %s\n", sdkDir)
+	if sdkDir != "" {
+		fmt.Printf("\nSDK: %s\n", sdkDir)
+	}
 	fmt.Printf("\nNext steps:\n")
 	fmt.Printf("  pig install %s --validate-only --json\n", root)
 	fmt.Printf("  pig -e %s          # load it into a session, then edit and /reload\n", root)
@@ -150,7 +163,10 @@ func isInitLanguage(lang string) bool {
 	return slices.Contains(initLanguages, lang)
 }
 
-func scaffoldFiles(lang, name, dirBase, sdkDir string, isolated, login bool) []scaffoldFile {
+func scaffoldFiles(lang, name, dirBase, sdkDir string, isolated, login, letGoSource bool) []scaffoldFile {
+	if lang == letGoInitLanguage {
+		return letGoScaffoldFiles(name, letGoSource)
+	}
 	if isolated {
 		switch lang {
 		case "python":
@@ -212,6 +228,8 @@ func parseExtensionInitOptions(args []string) extensionInitOptions {
 			opts.force = true
 		case "--isolated":
 			opts.isolated = true
+		case "--lg":
+			opts.letGoSource = true
 		case "--name":
 			if i+1 < len(args) {
 				i++
@@ -514,14 +532,16 @@ func printExtensionInitReport(report extensionInitReport, jsonOut bool) int {
 }
 
 func printExtensionInitHelp() {
-	fmt.Print("Usage:\n  pig extension init <path> [--name <name>] [--lang go|python|rust] [--login] [--isolated] [--force] [--json]\n\n" +
+	fmt.Print("Usage:\n  pig extension init <path> [--name <name>] [--lang go|python|rust|let-go] [--lg] [--login] [--isolated] [--force] [--json]\n\n" +
 		"Scaffold a new extension whose versioned SDK dependency Pig resolves to its\n" +
 		"staged copy, so it builds with no Pig source checkout or committed SDK path.\n" +
 		"Go builds fully offline; Python needs python3; Rust needs cargo (and crates.io\n" +
-		"on a cold cache for transitive dependencies).\n\n" +
+		"on a cold cache for transitive dependencies). let-go scaffolds portable source\n" +
+		"that Pig interprets in process: no SDK, toolchain or build.\n\n" +
 		"Options:\n" +
 		"  --name <name>   Extension name; it must match the sanitized directory base name.\n" +
-		"  --lang <lang>   Language to scaffold: go (default), python, or rust.\n" +
+		"  --lang <lang>   Language to scaffold: go (default), python, rust, or let-go.\n" +
+		"  --lg            With --lang let-go, scaffold a let-go-specific extension.lg instead of portable .cljc.\n" +
 		"  --login         Scaffold a conventional Go login factory with standard PiG art.\n" +
 		"  --isolated      Generate an exact standalone instead of a factory.\n" +
 		"  --force, -f     Overwrite existing files.\n" +

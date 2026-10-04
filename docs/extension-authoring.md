@@ -402,6 +402,8 @@ A Piglet Binary may fuse a compatible Go factory into Pig's process. Fused code 
 Use `pig extension init <path>` to create a factory. Add `--isolated` to create
 a standalone. The scaffold writes no extension metadata file.
 
+For trusted, interpreted Clojure with no SDK, toolchain or build, `pig extension init <path> --lang let-go` scaffolds portable `.cljc` (`--lg` for let-go-specific `.lg`). [Writing let-go extensions](letgo-extensions.md) covers the workflow, the supported subset and its limits.
+
 ### Portable staged SDK resolution
 
 `pig extension init` writes versioned SDK dependencies without machine-local

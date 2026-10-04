@@ -275,11 +275,11 @@ func TestExtensionInitScaffoldsBuildAndRegister(t *testing.T) {
 }
 
 func TestScaffoldNormalizesDigitPrefixedLanguageIdentifiers(t *testing.T) {
-	pythonFiles := scaffoldFiles("python", "9-test", "9-test", t.TempDir(), false, false)
+	pythonFiles := scaffoldFiles("python", "9-test", "9-test", t.TempDir(), false, false, false)
 	if len(pythonFiles) != 1 || pythonFiles[0].rel != "ext_9_test.py" || !strings.Contains(pythonFiles[0].body, "def new_extension()") {
 		t.Fatalf("Python scaffold = %#v", pythonFiles)
 	}
-	rustFiles := scaffoldFiles("rust", "9-test", "9-test", t.TempDir(), false, false)
+	rustFiles := scaffoldFiles("rust", "9-test", "9-test", t.TempDir(), false, false, false)
 	if len(rustFiles) < 1 || !strings.Contains(rustFiles[0].body, `name = "ext-9-test"`) {
 		t.Fatalf("Rust scaffold = %#v", rustFiles)
 	}
