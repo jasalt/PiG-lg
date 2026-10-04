@@ -22,7 +22,7 @@ Each function takes the callback handle.
 
 `signal-cancelled?` takes a signal returned by `signal` or passed to a contextual tool. `@signal` reports the same state. Request cancellation does not fabricate a run abort. Run abort does not fabricate request cancellation. Repeated reads of the same run signal reuse its opaque handle. Retained prior-run signal handles still observe their original run's abort. The adapter retains only the latest signal cache; authored references own any older handles.
 
-Native getters are called on each operation. Mutable model/tool data is not cached to fabricate live state. Conversion produces snapshots and retains native JSON field spelling. A snapshot is not a mutation channel into the Session. Unknown model representations and session managers without the native read methods fail explicitly. No width/height, raw Session, runner, terminal, or UI receiver is exposed. Simple UI actions and lifecycle event adapters are separate capabilities.
+Native getters are called on each operation. Mutable model/tool data is not cached to fabricate live state. Conversion produces snapshots. Native field names become kebab-case keywords under the public key-casing rule in [let-go value boundary](letgo-values.md), so a model snapshot has `:context-window` and an entry has `:parent-id`; opaque values such as tool `:parameters`, model `:headers` and custom entry `:data` keep their keys. A snapshot is not a mutation channel into the Session. Unknown model representations and session managers without the native read methods fail explicitly. No width/height, raw Session, runner, terminal, or UI receiver is exposed. Simple UI actions and lifecycle event adapters are separate capabilities.
 
 ## Simple UI actions
 

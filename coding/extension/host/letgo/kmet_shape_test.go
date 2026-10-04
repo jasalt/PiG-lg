@@ -194,13 +194,11 @@ func TestToolKmetDocumentationExampleLoadsWhereTheDecisionAllows(t *testing.T) {
 		t.Fatalf("Kmet :params example: %v", err)
 	}
 	allowed := strings.Replace(withoutHint, `:params {:path {:type :string :description "..."}}`, `:parameters {:type "object" :properties {:path {:type "string" :description "..."}}}`, 1)
-	// :is-error is Kmet's kebab-case result key; until the key-casing boundary lands only the native spelling decodes.
-	allowed = strings.Replace(allowed, `:is-error false`, `:isError false`, 1)
 	loaded := loadToolSource(t, allowed)
 	runner := inproc.NewRunner([]extension.Extension{loaded.Extension}, t.TempDir())
 	defer runner.Invalidate("test complete")
 	result, err := runner.Tools()[0].Definition.Execute(runner.DispatchContext(t.Context()), "call", json.RawMessage(`{"path":"x"}`), nil)
-	if err != nil || result.(agent.AgentToolResult).Text() != "..." {
+	if err != nil || result.(agent.AgentToolResult).Text() != "..." || result.(agent.AgentToolResult).IsError {
 		t.Fatalf("Kmet tool result %#v, %v", result, err)
 	}
 	if !runner.ExecuteCommand(t.Context(), "cmd", "") {

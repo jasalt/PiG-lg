@@ -110,7 +110,7 @@ func TestValueConvertPublicPresence(t *testing.T) {
 			t.Fatal(err)
 		}
 		var got extension.BeforeAgentStartEventResult
-		if err := decodeValue(value, &got); err != nil {
+		if err := decodePublicValue(value, &got); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(got, input) {
@@ -121,10 +121,10 @@ func TestValueConvertPublicPresence(t *testing.T) {
 		value vm.Value
 		want  *bool
 	}{
-		{vm.Map{}, nil}, {vm.Map{vm.Keyword("isError"): vm.NIL}, nil}, {vm.Map{vm.Keyword("isError"): vm.FALSE}, new(false)},
+		{vm.Map{}, nil}, {vm.Map{vm.Keyword("is-error"): vm.NIL}, nil}, {vm.Map{vm.Keyword("is-error"): vm.FALSE}, new(false)}, {vm.Map{vm.Keyword("isError"): vm.FALSE}, new(false)},
 	} {
 		var got extension.ToolResultEventResult
-		if err := decodeValue(test.value, &got); err != nil {
+		if err := decodePublicValue(test.value, &got); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(got.IsError, test.want) {
@@ -132,7 +132,7 @@ func TestValueConvertPublicPresence(t *testing.T) {
 		}
 	}
 	var result extension.BeforeAgentStartEventResult
-	if err := decodeValue(vm.Map{vm.Keyword("systemPrompt"): vm.Int(1)}, &result); err == nil || !strings.Contains(err.Error(), "systemPrompt") {
+	if err := decodePublicValue(vm.Map{vm.Keyword("system-prompt"): vm.Int(1)}, &result); err == nil || !strings.Contains(err.Error(), "systemPrompt") {
 		t.Fatalf("typed error: %v", err)
 	}
 	event := extension.BeforeAgentStartEvent{Type: "before_agent_start", Prompt: "test", SystemPrompt: "base"}
@@ -145,7 +145,7 @@ func TestValueConvertPublicPresence(t *testing.T) {
 		t.Fatal(err)
 	}
 	object := plain.(map[string]any)
-	if object["systemPrompt"] != "base" {
+	if object["system-prompt"] != "base" {
 		t.Fatal(object)
 	}
 	if _, exists := object["images"]; exists {
@@ -160,7 +160,7 @@ func TestValueConvertNativeUnions(t *testing.T) {
 			t.Fatal(err)
 		}
 		var got extension.InputEventResult
-		if err := decodeValue(value, &got); err != nil {
+		if err := decodePublicValue(value, &got); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(got, input) {
@@ -168,24 +168,24 @@ func TestValueConvertNativeUnions(t *testing.T) {
 		}
 	}
 	var inputResult extension.InputEventResult
-	if err := decodeValue(vm.Map{vm.Keyword("action"): vm.String("unknown")}, &inputResult); err == nil || !strings.Contains(err.Error(), "unknown action") {
+	if err := decodePublicValue(vm.Map{vm.Keyword("action"): vm.String("unknown")}, &inputResult); err == nil || !strings.Contains(err.Error(), "unknown action") {
 		t.Fatalf("union error: %v", err)
 	}
 	var call extension.ToolCallEvent
-	if err := decodeValue(vm.Map{vm.Keyword("toolName"): vm.String("custom")}, &call); err != nil {
+	if err := decodePublicValue(vm.Map{vm.Keyword("tool-name"): vm.String("custom")}, &call); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := call.(extension.CustomToolCallEvent); !ok {
 		t.Fatalf("custom union: %T", call)
 	}
 	var result extension.ToolResultEvent
-	if err := decodeValue(vm.Map{vm.Keyword("toolName"): vm.String("bash")}, &result); err != nil {
+	if err := decodePublicValue(vm.Map{vm.Keyword("tool-name"): vm.String("bash")}, &result); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := result.(extension.BashToolResultEvent); !ok {
 		t.Fatalf("builtin union: %T", result)
 	}
-	if err := decodeValue(vm.Map{}, &call); err == nil || !strings.Contains(err.Error(), "toolName") {
+	if err := decodePublicValue(vm.Map{}, &call); err == nil || !strings.Contains(err.Error(), "toolName") {
 		t.Fatalf("missing discriminator: %v", err)
 	}
 }

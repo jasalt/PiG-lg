@@ -34,12 +34,110 @@ func integerValue(number int64, path string) (vm.Value, error) {
 	return vm.Int(number), nil
 }
 
-func toValue(input any) (vm.Value, error) {
-	return convertToValue(reflect.ValueOf(input), "$", 0)
+// keyMode selects how object keys cross the boundary. Re-casing is a property of the entry point, never of the value.
+type keyMode uint8
+
+const (
+	// verbatimKeys keeps every key byte-for-byte: tool arguments, registration maps and opaque subtrees.
+	verbatimKeys keyMode = iota
+	// publicKeys maps native camelCase field names to kebab-case keywords for host-originated public data and back for results.
+	publicKeys
+)
+
+// opaqueFields name native fields whose values are extension, model or provider data, or maps keyed by data.
+// pig additive (D89): their keys are never re-cased, at any depth.
+var opaqueFields = map[string]bool{
+	"arguments":            true, // model-produced tool arguments
+	"chatTemplateArgs":     true, // provider chat-template values
+	"chatTemplateKwargs":   true, // provider chat-template values
+	"data":                 true, // custom entry data and provider handles
+	"details":              true, // tool and custom-message details
+	"headers":              true, // provider header maps
+	"input":                true, // tool call arguments
+	"openRouterRouting":    true, // provider routing config
+	"parameters":           true, // JSON-schema bodies
+	"promptCache":          true, // keyed by retention tier
+	"samplingParams":       true, // provider parameter maps
+	"structuredContent":    true, // tool JSON results
+	"thinkingLevelMap":     true, // keyed by thinking level
+	"toolGuidelines":       true, // keyed by tool name
+	"toolSnippets":         true, // keyed by tool name
+	"variants":             true, // keyed by sampling variant
+	"vercelGatewayRouting": true, // provider routing config
 }
 
-// publicValue uses the native JSON contract, including custom marshalers and omission rules.
-// Callers must supply public event/result data, never a context, API, or callback receiver.
+// publicKey returns the kebab-case spelling of a native key, or false when the key does not round-trip exactly.
+// Only lowerCamel keys without uppercase runs or separators are re-cased: toolCallId is tool-call-id, cacheWrite1h is cache-write1h.
+func publicKey(native string) (string, bool) {
+	public, ok := kebabCase(native)
+	if !ok {
+		return "", false
+	}
+	back, ok := camelCase(public)
+	return public, ok && back == native
+}
+
+// nativeKey inverts publicKey; a key that is not the exact public spelling of a native key is returned unchanged.
+func nativeKey(public string) string {
+	native, ok := camelCase(public)
+	if !ok {
+		return public
+	}
+	if back, ok := kebabCase(native); !ok || back != public {
+		return public
+	}
+	return native
+}
+
+// kebabCase splits [a-z][a-z0-9]* followed by single uppercase letters, each starting a word.
+func kebabCase(native string) (string, bool) {
+	var b strings.Builder
+	for i := 0; i < len(native); i++ {
+		c := native[i]
+		switch {
+		case lowerOrDigit(c) && (i > 0 || isLower(c)):
+			b.WriteByte(c)
+		case isUpper(c) && i > 0 && !isUpper(native[i-1]):
+			b.WriteByte('-')
+			b.WriteByte(c + 'a' - 'A')
+		default:
+			return "", false
+		}
+	}
+	return b.String(), native != ""
+}
+
+// camelCase joins - separated [a-z][a-z0-9]* words, capitalizing every word after the first.
+func camelCase(public string) (string, bool) {
+	var b strings.Builder
+	for i, word := range strings.Split(public, "-") {
+		if word == "" || !isLower(word[0]) {
+			return "", false
+		}
+		for j := 1; j < len(word); j++ {
+			if !lowerOrDigit(word[j]) {
+				return "", false
+			}
+		}
+		if i > 0 {
+			b.WriteByte(word[0] - 'a' + 'A')
+			word = word[1:]
+		}
+		b.WriteString(word)
+	}
+	return b.String(), true
+}
+
+func isLower(c byte) bool      { return c >= 'a' && c <= 'z' }
+func isUpper(c byte) bool      { return c >= 'A' && c <= 'Z' }
+func lowerOrDigit(c byte) bool { return isLower(c) || c >= '0' && c <= '9' }
+
+func toValue(input any) (vm.Value, error) {
+	return convertToValue(reflect.ValueOf(input), "$", 0, verbatimKeys)
+}
+
+// publicValue uses the native JSON contract, including custom marshalers and omission rules, then re-cases native field names.
+// Callers must supply host-originated public data (events, context reads, model info), never a context, API, or callback receiver.
 func publicValue(input any) (vm.Value, error) {
 	var err error
 	var data []byte
@@ -57,10 +155,10 @@ func publicValue(input any) (vm.Value, error) {
 	if err := decoder.Decode(&plain); err != nil {
 		return nil, fmt.Errorf("$: decode public data: %w", err)
 	}
-	return toValue(plain)
+	return convertToValue(reflect.ValueOf(plain), "$", 0, publicKeys)
 }
 
-func convertToValue(value reflect.Value, path string, depth int) (vm.Value, error) {
+func convertToValue(value reflect.Value, path string, depth int, mode keyMode) (vm.Value, error) {
 	if depth > valueDepthLimit {
 		return nil, fmt.Errorf("%s: value nesting exceeds %d", path, valueDepthLimit)
 	}
@@ -71,7 +169,7 @@ func convertToValue(value reflect.Value, path string, depth int) (vm.Value, erro
 		if value.IsNil() {
 			return vm.NIL, nil
 		}
-		return convertToValue(value.Elem(), path, depth+1)
+		return convertToValue(value.Elem(), path, depth+1, mode)
 	}
 	if value.Type() == reflect.TypeFor[json.Number]() {
 		number := value.Interface().(json.Number)
@@ -108,7 +206,7 @@ func convertToValue(value reflect.Value, path string, depth int) (vm.Value, erro
 		}
 		result := make(vm.ArrayVector, value.Len())
 		for i := range value.Len() {
-			item, err := convertToValue(value.Index(i), fmt.Sprintf("%s[%d]", path, i), depth+1)
+			item, err := convertToValue(value.Index(i), fmt.Sprintf("%s[%d]", path, i), depth+1, mode)
 			if err != nil {
 				return nil, err
 			}
@@ -125,15 +223,29 @@ func convertToValue(value reflect.Value, path string, depth int) (vm.Value, erro
 		keys := value.MapKeys()
 		slices.SortFunc(keys, func(a, b reflect.Value) int { return strings.Compare(a.String(), b.String()) })
 		result := vm.EmptyPersistentMap
+		spellings := make(map[string]string, len(keys))
 		for _, key := range keys {
-			name := key.String()
-			item, err := convertToValue(value.MapIndex(key), fieldPath(path, name), depth+1)
+			name, itemMode := key.String(), mode
+			spelling, recased := name, false
+			if mode == publicKeys {
+				if public, ok := publicKey(name); ok {
+					spelling, recased = public, true
+				}
+				if opaqueFields[name] {
+					itemMode = verbatimKeys
+				}
+			}
+			if previous, exists := spellings[spelling]; exists {
+				return nil, fmt.Errorf("%s: keys %q and %q have the same public spelling %q", path, previous, name, spelling)
+			}
+			spellings[spelling] = name
+			item, err := convertToValue(value.MapIndex(key), fieldPath(path, spelling), depth+1, itemMode)
 			if err != nil {
 				return nil, err
 			}
-			var objectKey vm.Value = vm.String(name)
-			if identifierKey(name) {
-				objectKey = vm.Keyword(name)
+			var objectKey vm.Value = vm.String(spelling)
+			if recased || identifierKey(spelling) {
+				objectKey = vm.Keyword(spelling)
 			}
 			result = result.Assoc(objectKey, item).(*vm.PersistentMap)
 		}
@@ -167,9 +279,12 @@ func fieldPath(path, key string) string {
 	return path + "[" + strconv.Quote(key) + "]"
 }
 
-func fromValue(value vm.Value) (any, error) { return convertFromValue(value, "$", 0) }
+func fromValue(value vm.Value) (any, error) { return convertFromValue(value, "$", 0, verbatimKeys) }
 
-func convertFromValue(value vm.Value, path string, depth int) (any, error) {
+// fromPublicValue converts a returned result, mapping kebab-case keys back to native field names outside opaque fields.
+func fromPublicValue(value vm.Value) (any, error) { return convertFromValue(value, "$", 0, publicKeys) }
+
+func convertFromValue(value vm.Value, path string, depth int, mode keyMode) (any, error) {
 	if depth > valueDepthLimit {
 		return nil, fmt.Errorf("%s: value nesting exceeds %d", path, valueDepthLimit)
 	}
@@ -193,31 +308,31 @@ func convertFromValue(value vm.Value, path string, depth int) (any, error) {
 	case vm.String:
 		return string(value), nil
 	case vm.ArrayVector:
-		return sequenceValue(value, path, depth)
+		return sequenceValue(value, path, depth, mode)
 	case vm.PersistentVector:
-		return sequenceValue(value, path, depth)
+		return sequenceValue(value, path, depth, mode)
 	case *vm.PersistentVector:
 		if value != nil {
-			return sequenceValue(value, path, depth)
+			return sequenceValue(value, path, depth, mode)
 		}
 	case *vm.List:
 		if value != nil {
-			return sequenceValue(value, path, depth)
+			return sequenceValue(value, path, depth, mode)
 		}
 	case vm.Map:
-		return objectValue(value, path, depth)
+		return objectValue(value, path, depth, mode)
 	case *vm.PersistentMap:
 		if value != nil {
-			return objectValue(value, path, depth)
+			return objectValue(value, path, depth, mode)
 		}
 	}
 	return nil, fmt.Errorf("%s: unsupported let-go value %T", path, value)
 }
 
-func sequenceValue(value vm.Sequable, path string, depth int) (any, error) {
+func sequenceValue(value vm.Sequable, path string, depth int, mode keyMode) (any, error) {
 	result := make([]any, 0)
 	for seq, i := value.Seq(), 0; i < value.(vm.Counted).RawCount() && seq != nil; seq, i = seq.Next(), i+1 {
-		item, err := convertFromValue(seq.First(), fmt.Sprintf("%s[%d]", path, len(result)), depth+1)
+		item, err := convertFromValue(seq.First(), fmt.Sprintf("%s[%d]", path, len(result)), depth+1, mode)
 		if err != nil {
 			return nil, err
 		}
@@ -226,32 +341,46 @@ func sequenceValue(value vm.Sequable, path string, depth int) (any, error) {
 	return result, nil
 }
 
-func objectValue(value vm.Sequable, path string, depth int) (any, error) {
+func objectValue(value vm.Sequable, path string, depth int, mode keyMode) (any, error) {
 	// Normalize all keys before values so a collision never silently overwrites a field.
+	// In public mode re-casing is the normalization, so :is-error and :isError together are a collision.
 	fields := make(map[string]vm.Value)
+	spellings := make(map[string]string)
 	for seq, i := value.Seq(), 0; i < value.(vm.Counted).RawCount() && seq != nil; seq, i = seq.Next(), i+1 {
 		entry := seq.First().(vm.Seq)
 		key := entry.First()
-		var name string
+		var spelling string
 		switch key := key.(type) {
 		case vm.String:
-			name = string(key)
+			spelling = string(key)
 		case vm.Keyword:
 			if strings.Contains(string(key), "/") {
 				return nil, fmt.Errorf("%s: namespaced keyword object key %q", path, string(key))
 			}
-			name = string(key)
+			spelling = string(key)
 		default:
 			return nil, fmt.Errorf("%s: unsupported object key %T", path, key)
 		}
-		if _, exists := fields[name]; exists {
-			return nil, fmt.Errorf("%s: duplicate object key %q", path, name)
+		name := spelling
+		if mode == publicKeys {
+			name = nativeKey(spelling)
 		}
+		if previous, exists := spellings[name]; exists {
+			if previous == spelling {
+				return nil, fmt.Errorf("%s: duplicate object key %q", path, name)
+			}
+			return nil, fmt.Errorf("%s: keys %q and %q both name field %q", path, min(previous, spelling), max(previous, spelling), name)
+		}
+		spellings[name] = spelling
 		fields[name] = entry.Next().First()
 	}
 	result := make(map[string]any, len(fields))
 	for _, name := range slices.Sorted(maps.Keys(fields)) {
-		item, err := convertFromValue(fields[name], fieldPath(path, name), depth+1)
+		itemMode := mode
+		if opaqueFields[name] {
+			itemMode = verbatimKeys
+		}
+		item, err := convertFromValue(fields[name], fieldPath(path, spellings[name]), depth+1, itemMode)
 		if err != nil {
 			return nil, err
 		}
@@ -262,8 +391,9 @@ func objectValue(value vm.Sequable, path string, depth int) (any, error) {
 
 // toolResultValue uses native text/image content decoding and retains explicit result-member presence.
 // Map conversion does not supply authored insertion order; MemberOrder records deterministic snapshot order only.
+// Results are public data: :is-error decodes as isError while :details keeps its keys.
 func toolResultValue(value vm.Value) (agent.AgentToolResult, error) {
-	plain, err := fromValue(value)
+	plain, err := fromPublicValue(value)
 	if err != nil {
 		return agent.AgentToolResult{}, err
 	}
@@ -297,13 +427,27 @@ func toolResultValue(value vm.Value) (agent.AgentToolResult, error) {
 	return agent.AgentToolResult{Content: message.Content, Details: message.Details, IsError: message.IsError, Usage: message.Usage, StructuredContent: extra.StructuredContent, Terminate: extra.Terminate, MemberOrder: slices.Sorted(maps.Keys(object))}, nil
 }
 
-// decodeValue delegates typed unions and presence flags to their native JSON decoders.
+// decodeValue delegates typed unions and presence flags to their native JSON decoders, keeping keys verbatim.
 // It does not preserve object aliases or ordered mutation semantics.
 func decodeValue(value vm.Value, target any) error {
 	plain, err := fromValue(value)
 	if err != nil {
 		return err
 	}
+	return decodePlain(plain, target)
+}
+
+// decodePublicValue decodes a typed result returned for host-originated public data, mapping kebab-case keys back first.
+// Unknown keys pass to the native decoder, which decides whether to ignore them.
+func decodePublicValue(value vm.Value, target any) error {
+	plain, err := fromPublicValue(value)
+	if err != nil {
+		return err
+	}
+	return decodePlain(plain, target)
+}
+
+func decodePlain(plain any, target any) error {
 	data, err := json.Marshal(plain)
 	if err != nil {
 		return fmt.Errorf("$: encode result: %w", err)

@@ -77004,15 +77004,26 @@
       "shapeHash": "sha256:c19112d89c0fbe7c8a4e6e08c4a3ce07726af85bbdecc532a50d961043a20781"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#camelCase",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "camelCase",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(public string) (string, bool)"
+      },
+      "shapeHash": "sha256:5e31eee8c666f6885c04be890b73ab6bb5bbad05df95340b14bdd0eddae9d4be"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#convertFromValue",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "convertFromValue",
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(value github.com/nooga/let-go/pkg/vm.Value, path string, depth int) (any, error)"
+        "type": "func(value github.com/nooga/let-go/pkg/vm.Value, path string, depth int, mode keyMode) (any, error)"
       },
-      "shapeHash": "sha256:1777c98ad93b2b8741593fcc93f880597b2c7a8a7c3f6c0552d48fcffc910c64"
+      "shapeHash": "sha256:d7099b39660ba9cc61cceaa448ba241849739914e0ad495f4958174cce6d0801"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#convertToValue",
@@ -77021,9 +77032,31 @@
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(value reflect.Value, path string, depth int) (github.com/nooga/let-go/pkg/vm.Value, error)"
+        "type": "func(value reflect.Value, path string, depth int, mode keyMode) (github.com/nooga/let-go/pkg/vm.Value, error)"
       },
-      "shapeHash": "sha256:454dee33ad59f3e670619177904cdf8e6513c7f6b9a084a9f0aef985f1ca1647"
+      "shapeHash": "sha256:d2369dcfefaca0003ae874441e185ddc3ff7cad8c33afa5221e2dda0d11464ff"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#decodePlain",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "decodePlain",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(plain any, target any) error"
+      },
+      "shapeHash": "sha256:5e0b8a22465e7c961c2a98a3802e1be6c03be5e8809a469facbace4536477728"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#decodePublicValue",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "decodePublicValue",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(value github.com/nooga/let-go/pkg/vm.Value, target any) error"
+      },
+      "shapeHash": "sha256:f253db07564d3f1b9d4553f4af970d268c2cdb2434f728e5ead33f3528b9459a"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#decodeValue",
@@ -77114,6 +77147,17 @@
       "shapeHash": "sha256:bc738bf6468fabc005d40b40537ebda72ebdc5fbf7ed82e26f29c841ad1a3ec1"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#fromPublicValue",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "fromPublicValue",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(value github.com/nooga/let-go/pkg/vm.Value) (any, error)"
+      },
+      "shapeHash": "sha256:74bac6a3f130747124f8f286a6748f0f04ce6d60bbdeee9fb76110a88bd23403"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#fromValue",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "fromValue",
@@ -77202,6 +77246,28 @@
       "shapeHash": "sha256:6b40cbb40507b7efce1d433d06fed509e653a5671897ef0381b72bf3dce3329e"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#isLower",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "isLower",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(c byte) bool"
+      },
+      "shapeHash": "sha256:ddee310485d8cb330136843bd197df952280076e599df8b9fa4911341282355d"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#isUpper",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "isUpper",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(c byte) bool"
+      },
+      "shapeHash": "sha256:ddee310485d8cb330136843bd197df952280076e599df8b9fa4911341282355d"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#jsonFieldNames",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "jsonFieldNames",
@@ -77211,6 +77277,28 @@
         "type": "func(native reflect.Type) map[string]bool"
       },
       "shapeHash": "sha256:5d5aa19b6901d140161b5d74259ddd8df0151f33e3353cdcccf139f0586f7542"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#kebabCase",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "kebabCase",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(native string) (string, bool)"
+      },
+      "shapeHash": "sha256:3a52570fafc9e849bc5c99685882572f95ffc9ea966ff8061e1a280a9338d5ff"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#keyMode",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "keyMode",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "keyMode"
+      },
+      "shapeHash": "sha256:6335dd7a744f3276b58b2c8ebd399d22bddbaa9f3dcaae1ca4cd5105d1a8641d"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#lifecycleAdapter",
@@ -77235,6 +77323,17 @@
       "shapeHash": "sha256:fa66a33316ead4d06f2ea267a6ade00fc65c7498103af59370f80a46b0e7e360"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#lowerOrDigit",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "lowerOrDigit",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(c byte) bool"
+      },
+      "shapeHash": "sha256:ddee310485d8cb330136843bd197df952280076e599df8b9fa4911341282355d"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#maxSafeInteger",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "maxSafeInteger",
@@ -77244,6 +77343,17 @@
         "type": "untyped int"
       },
       "shapeHash": "sha256:e464e6de3ad35418f6e6dfe34abdf0de696ea4b2b49704e3c41e4184b74f805f"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#nativeKey",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "nativeKey",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(public string) string"
+      },
+      "shapeHash": "sha256:47537a124efdbe9196d6f75fafed809ecc5caadc220e0915ac91353c857b5ad4"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#newRegistrationBuilder",
@@ -77263,9 +77373,9 @@
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(value github.com/nooga/let-go/pkg/vm.Sequable, path string, depth int) (any, error)"
+        "type": "func(value github.com/nooga/let-go/pkg/vm.Sequable, path string, depth int, mode keyMode) (any, error)"
       },
-      "shapeHash": "sha256:9711ae7e968494b23f5cae06ea6de48d8b5e3dcbeb1748a8bc59ee5514e4ecc8"
+      "shapeHash": "sha256:30c202f88a2ae9a4708b14722222cd34265e425065a0191e7cf538af00781fed"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction",
@@ -77334,6 +77444,17 @@
       "shapeHash": "sha256:6b40cbb40507b7efce1d433d06fed509e653a5671897ef0381b72bf3dce3329e"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#opaqueFields",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "opaqueFields",
+      "kind": "variable",
+      "exported": false,
+      "shape": {
+        "type": "map[string]bool"
+      },
+      "shapeHash": "sha256:3af528a2ba91555bb23ee8186a48c3c9201b3cf65594c81b5d32e417b99fd811"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#optionalCallbackField",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "optionalCallbackField",
@@ -77354,6 +77475,28 @@
         "type": "struct{sync.Once; host *RuntimeHost}"
       },
       "shapeHash": "sha256:6237813a37e2f204b5cec493d8efeb0522a109a43ceeef8a03e35380925ac895"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#publicKey",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "publicKey",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(native string) (string, bool)"
+      },
+      "shapeHash": "sha256:3a52570fafc9e849bc5c99685882572f95ffc9ea966ff8061e1a280a9338d5ff"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#publicKeys",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "publicKeys",
+      "kind": "constant",
+      "exported": false,
+      "shape": {
+        "type": "keyMode"
+      },
+      "shapeHash": "sha256:6335dd7a744f3276b58b2c8ebd399d22bddbaa9f3dcaae1ca4cd5105d1a8641d"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#publicValue",
@@ -77648,9 +77791,9 @@
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(value github.com/nooga/let-go/pkg/vm.Sequable, path string, depth int) (any, error)"
+        "type": "func(value github.com/nooga/let-go/pkg/vm.Sequable, path string, depth int, mode keyMode) (any, error)"
       },
-      "shapeHash": "sha256:9711ae7e968494b23f5cae06ea6de48d8b5e3dcbeb1748a8bc59ee5514e4ecc8"
+      "shapeHash": "sha256:30c202f88a2ae9a4708b14722222cd34265e425065a0191e7cf538af00781fed"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#sessionReader",
@@ -77871,6 +78014,17 @@
         "type": "untyped int"
       },
       "shapeHash": "sha256:e464e6de3ad35418f6e6dfe34abdf0de696ea4b2b49704e3c41e4184b74f805f"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#verbatimKeys",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "verbatimKeys",
+      "kind": "constant",
+      "exported": false,
+      "shape": {
+        "type": "keyMode"
+      },
+      "shapeHash": "sha256:6335dd7a744f3276b58b2c8ebd399d22bddbaa9f3dcaae1ca4cd5105d1a8641d"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#vmScope",
