@@ -5,10 +5,15 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/MichaelKinsy/PiG/coding/extension"
+	"github.com/MichaelKinsy/PiG/coding/extension/host/letgo"
+	"github.com/MichaelKinsy/PiG/coding/extension/host/subprocess"
 )
 
 // letGoStartupEnv is a hermetic home for one binary run. The binary needs no lg executable: let-go is interpreted in process.
@@ -238,4 +243,40 @@ func TestLetGoStartupRPCListsAndDispatchesTheCommand(t *testing.T) {
 		t.Fatalf("handler saw %q, want %q", got, want)
 	}
 	p.closeAndWait("the command ran")
+}
+
+func TestLetGoInterleavePlacesInterpretedExtensionsAtTheirDiscoveryPosition(t *testing.T) {
+	named := func(name string) extension.Extension { return extension.Extension{Name: name} }
+	interpreted := func(name string) *letgo.Loaded { return &letgo.Loaded{Extension: named(name)} }
+	names := func(extensions []extension.Extension) []string {
+		var out []string
+		for _, ext := range extensions {
+			out = append(out, ext.Name)
+		}
+		return out
+	}
+	subprocessLoaded := []extension.Extension{named("s1"), named("s2"), named("s3")}
+	for _, test := range []struct {
+		name string
+		set  *letGoSet
+		want []string
+	}{
+		{name: "none", set: &letGoSet{}, want: []string{"s1", "s2", "s3"}},
+		{name: "first and last", set: &letGoSet{loaded: []*letgo.Loaded{interpreted("l1"), interpreted("l2")}, positions: []int{0, 3}}, want: []string{"l1", "s1", "s2", "s3", "l2"}},
+		{name: "between", set: &letGoSet{loaded: []*letgo.Loaded{interpreted("l1"), interpreted("l2")}, positions: []int{1, 1}}, want: []string{"s1", "l1", "l2", "s2", "s3"}},
+		{name: "clamped when a subprocess extension failed to load", set: &letGoSet{loaded: []*letgo.Loaded{interpreted("l1")}, positions: []int{5}}, want: []string{"s1", "s2", "s3", "l1"}},
+	} {
+		if got := names(interleaveLetGo(subprocessLoaded, test.set)); !slices.Equal(got, test.want) {
+			t.Errorf("%s: %v, want %v", test.name, got, test.want)
+		}
+	}
+	// Disabled configs do not count toward a position, and interpreted configs are split out of the subprocess list in order.
+	configs := []subprocess.ExtConfig{
+		{Name: "a", Enabled: true}, {Name: "l1", Enabled: true, RuntimeKind: "let-go"}, {Name: "off", Enabled: false},
+		{Name: "b", Enabled: true}, {Name: "l2", Enabled: false, RuntimeKind: "let-go"},
+	}
+	interpretedConfigs, others := splitLetGoConfigs(configs)
+	if len(interpretedConfigs) != 2 || len(others) != 3 || others[0].Name != "a" || others[2].Name != "b" {
+		t.Fatalf("split %v / %v", interpretedConfigs, others)
+	}
 }
