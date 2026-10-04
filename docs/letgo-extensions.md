@@ -78,3 +78,22 @@ State resets with the generation. A reload, a Session replacement and a restart 
 ## Errors
 
 Every failure names the source path and a phase: eval, init, register, callback or shutdown. A malformed value names its field, such as `$.params`. [Registration](letgo-registration.md#diagnostics-and-validation) lists where each surfaces, including `pig install --validate-only`.
+
+## Conformance
+
+`test/extension-conformance/letgo_conformance_test.go` runs the supported rows through the real loader and the in-process runner and compares each observation with the native reference, the in-process Go fixture or a native handler, so a row cannot pass on a value the interpreter produces by accident. Run `go test ./test/extension-conformance -run LetGoConformance`.
+
+| Row | Production path | Reference |
+| --- | --- | --- |
+| tool success, thrown error, structured error | `ToolDefinition.Execute` | the in-process Go fixture's `echo`, `tool_error`, `tool_is_error` |
+| streamed partial results | `:contextual?` `on-update` to the runner's update callback | the fixture's `update_tool` |
+| command, immediate error | `RegisteredCommand.Handler` | `ping`, `command_error` |
+| select, input, confirm, notify | the runner's bound UI | the recording UI's answers |
+| awaited dialog, cancellation | the native caller waits; a cancelled request returns `context.Canceled` and is not reported as an extension error | the runner's own rule for a handler that returns its context's error |
+| context reads | the context map over `extension.Context` | the native context's mode, cwd, UI and idle reads |
+| `session_start`, `session_shutdown` | `Runner.Emit` | the event payload |
+| dynamic registration | shared tool registry plus the bound `RefreshTools` | the registry and the refresh count |
+| `tool_call`, `tool_result`, `before_agent_start` | `EmitToolCall`, `EmitToolResult`, `EmitBeforeAgentStart` | a native handler registered for the same event |
+| reload | `cmd/pig` reload tests through the production paths | not a conformance row |
+
+The `api` map is the capability inventory, and a test pins its keys. The rows the subset does not implement are flags, shortcuts, message, entry and tool renderers, the markdown transformer, providers and models, login and sprite definitions, status, widgets, header, footer and editor, editor and custom dialogs, send message and send user message, session name and entries, terminal input, project trust, `agent_before_settle`, context abort, wait-for-idle, reload and compact, and `prepareArguments`. No row of another SDK is weakened or skipped, and this is not a claim of parity with them. Each row fails under a compiling mutation of let-go's value conversion or dispatch: leaving a result's `:is-error` key unmapped fails the structured-error row, swapping a command's argument order fails the command, dialog and context rows, and not re-casing host event keys fails the hook rows.

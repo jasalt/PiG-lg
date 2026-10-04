@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/nooga/let-go/pkg/vm"
+
 	"github.com/MichaelKinsy/PiG/coding/extension"
 )
 
@@ -57,4 +59,16 @@ func (l *Loaded) registrationsSummary() Registrations {
 	}
 	slices.Sort(summary.Handlers)
 	return summary
+}
+
+// APIKeys lists the capability names init's api map carries, so a conformance row can pin the supported inventory.
+func (l *Loaded) APIKeys() []string {
+	var keys []string
+	sequence := l.api.(vm.Sequable)
+	for seq, i := sequence.Seq(), 0; i < l.api.(vm.Counted).RawCount() && seq != nil; seq, i = seq.Next(), i+1 {
+		if key, ok := seq.First().(vm.Seq).First().(vm.Keyword); ok {
+			keys = append(keys, string(key))
+		}
+	}
+	return keys
 }
