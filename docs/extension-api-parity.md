@@ -42,6 +42,12 @@ handler within one extension registration; it is not a multi-register handshake.
 When a row is impossible or intentionally non-parity, record a numbered
 entry in `docs/parity/DIVERGENCES.md` and link it from the Status column.
 
+### let-go supported subset (D89)
+
+The internal interpreted loader supplies tools, commands, and the explicit native context reads in [let-go context reads](letgo-context.md). It uses the owner-approved concrete typed registration builder rather than claiming to implement all of `extension.API`. No full SDK or CLI/reload conformance claim follows from these internal tests.
+
+Tools and commands block their native callback until interpreted execution returns. Registration exceptions, interpreted errors, conversion errors, and queued cancellation reach that same caller; native command error listeners retain their normal behavior. No detached interpreter work is started. Retained context handles delegate to native getters and remain valid after return until generation/runner retirement. Request cancellation and active-run signal abort are separate operations. Session history conversion runs on the callback worker and is proportional to the requested snapshot; it must not run on the TUI input loop. The context and command regressions under `coding/extension/host/letgo` verify the native runner path; normal startup/event ownership and shared conformance remain separate gates.
+
 ### Async contract requirement
 
 Every upstream Promise-returning extension method, callback, handler, factory,

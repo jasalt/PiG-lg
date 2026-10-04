@@ -34,6 +34,12 @@ func newRegistrationBuilder(identity extension.Extension) *registrationBuilder {
 	return &registrationBuilder{ext: identity}
 }
 
+func (b *registrationBuilder) activeError() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.checkActive()
+}
+
 func (b *registrationBuilder) checkActive() error {
 	if b.closed {
 		return errors.New("let-go registrations are closed")

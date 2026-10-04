@@ -32,10 +32,12 @@ type Loaded struct {
 	path           string
 	loadingContext context.Context
 	current        *invocationToken // accessed only under the generation's VM gate
+	latestSignal   *signalToken     // accessed only under the generation's VM gate
 }
 
 // pig additive (D89): callback contexts are opaque interpreter values, not reflective Go contexts.
 type invocationToken struct {
+	owner  *Loaded
 	ctx    context.Context
 	active bool
 }
@@ -83,6 +85,9 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 			err = errors.Join(err, loaded.Close(context.WithoutCancel(ctx)))
 		}
 	}()
+	if _, err = generation.withVM(ctx, func() (vm.Value, error) { return vm.NIL, loaded.installContext() }); err != nil {
+		return nil, loaded.phaseError("install context", err)
+	}
 	if err = generation.Def(ctx, "register-tool!", loaded.registerTool); err != nil {
 		return nil, loaded.phaseError("install", err)
 	}
@@ -172,7 +177,7 @@ func (l *Loaded) registerTool(value vm.Value) (vm.Value, error) {
 }
 
 func (l *Loaded) invoke(ctx context.Context, callback vm.Fn, payload vm.Value) (vm.Value, error) {
-	token := &invocationToken{ctx: ctx}
+	token := &invocationToken{owner: l, ctx: ctx}
 	return guardedValue(func() (vm.Value, error) {
 		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token}, []vm.Value{token, payload})
 	})
