@@ -43377,6 +43377,17 @@
       "shapeHash": "sha256:3fca6bb951813dd3278d10a47c8a8e66388488e9c6fb692d9364bd993aa399ec"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#cliBuild.reloadHost",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "cliBuild.reloadHost",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() github.com/MichaelKinsy/PiG/internal/codingagent.SubprocessHost"
+      },
+      "shapeHash": "sha256:4a5f25c7efab5d8c0d40482d60a1b66cc309ee1b4cd2bcd57ddd74bbfb703eac"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#cliBuild.retireExtensions",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "cliBuild.retireExtensions",
@@ -43837,6 +43848,17 @@
         "type": "func(set *letGoSet, reason string)"
       },
       "shapeHash": "sha256:bd19109957f6b4904ab540e56062432498320c0fb4919be5357f40f316c81f53"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#closeLetGoOwner",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "closeLetGoOwner",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(owner *letGoOwner, reason string)"
+      },
+      "shapeHash": "sha256:5b1a5f469ca24eb339e5d292c900597ebc309cebb7e1a2df8de41b04b8c01fa1"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#codemodeSettings",
@@ -46061,6 +46083,94 @@
       "shapeHash": "sha256:d9ee32044f7e623a46d2f7fec70ffc60fbd680b844bca744fd2c2d191672a29a"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "letGoOwner"
+      },
+      "shapeHash": "sha256:367f711e55c2f245e3af24023d44e4c8c0a3aa4ae590d4a3798ba5179c59d125"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.Close",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.Close",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context) error"
+      },
+      "shapeHash": "sha256:1308e2e58e033a63ea9692ed75c8c737d1759c4953f8048cc0018fe7148bf370"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.abort",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.abort",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func()"
+      },
+      "shapeHash": "sha256:032e891204f123caf14d3d421fa9728efc3f31299c17e98859c219dccddd74fb"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.adopt",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.adopt",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(set *letGoSet)"
+      },
+      "shapeHash": "sha256:cd4e64349ffc97043c18a24e68e09b756cea4167e4b963c35a1a5e6c4843b7ec"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.attach",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.attach",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, runner *github.com/MichaelKinsy/PiG/coding/extension/host/inproc.Runner) error"
+      },
+      "shapeHash": "sha256:3fca6bb951813dd3278d10a47c8a8e66388488e9c6fb692d9364bd993aa399ec"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.empty",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.empty",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func() bool"
+      },
+      "shapeHash": "sha256:f632619397f10a7f0e472ad47d2824ec7e080d15ac9eb0994e24800757b3fb96"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.merge",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.merge",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(subprocessLoaded []github.com/MichaelKinsy/PiG/coding/extension.Extension) []github.com/MichaelKinsy/PiG/coding/extension.Extension"
+      },
+      "shapeHash": "sha256:2c696cb79dfdb1744535333fc2784827e53ed8c1d61cce3a5f88aa09f8be9624"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoOwner.stage",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "letGoOwner.stage",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(ctx context.Context, configs []github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ExtConfig) []error"
+      },
+      "shapeHash": "sha256:1e2ed086a724d12a6a3da9f58097e9928d38805bb3f68d1d1d48e2a4cb29bec7"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#letGoSet",
       "package": "github.com/MichaelKinsy/PiG/cmd/pig",
       "name": "letGoSet",
@@ -46818,6 +46928,17 @@
         "type": "func(selector *github.com/MichaelKinsy/PiG/tui.ConfigSelectorComponent, settings *github.com/MichaelKinsy/PiG/internal/codingagent.SettingsManager, agentDir string) *github.com/MichaelKinsy/PiG/tui.TUI"
       },
       "shapeHash": "sha256:a81546f7f53b1eac92cff4c9dd1cd9720fdd4bb5c7a46a4d99a8113f80328c69"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#newLetGoOwner",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "newLetGoOwner",
+      "kind": "function",
+      "exported": false,
+      "shape": {
+        "type": "func(set *letGoSet) *letGoOwner"
+      },
+      "shapeHash": "sha256:b0caa49cb902497122ad3d078cfbfdf6b3f0e41890bb7919e98f10013adf1ea8"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#newLoginPreviewUI",
@@ -48160,6 +48281,138 @@
         "type": "func(cwd string, agentDir string, sm *github.com/MichaelKinsy/PiG/internal/codingagent.SettingsManager, flags CLIFlags, skillScopes *[]string) func() github.com/MichaelKinsy/PiG/internal/codingagent.ReloadResourceSnapshot"
       },
       "shapeHash": "sha256:6e83c9d79776d9f9c453c313be20690f9e06945cddbccdec80096460237cb360"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "reloadingHost"
+      },
+      "shapeHash": "sha256:4e2799d52cb3523cb866974d1b30058d658122654a7911b6b0c9afd16b8fbdb9"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.ExtensionCount",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.ExtensionCount",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() int"
+      },
+      "shapeHash": "sha256:abda90b0a9dee566c1c4d8a5e69e5e1e0dc21a5f6a3f00ada27ad225d1a5f10b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.Extensions",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.Extensions",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() []github.com/MichaelKinsy/PiG/coding/extension.Extension"
+      },
+      "shapeHash": "sha256:360c6ba4eb876e9c276f6bf91d223b3ffb547c3e70d1c581ede03d1f8617d39c"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.IsShuttingDown",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.IsShuttingDown",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() bool"
+      },
+      "shapeHash": "sha256:f632619397f10a7f0e472ad47d2824ec7e080d15ac9eb0994e24800757b3fb96"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.LastReloadReport",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.LastReloadReport",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() *github.com/MichaelKinsy/PiG/coding/extension/host/subprocess.ReloadReport"
+      },
+      "shapeHash": "sha256:f1613c488715fdc3d7a8aee8ea2426c16fd930db106b2857fed973039548be9c"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.LoadErrors",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.LoadErrors",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() []string"
+      },
+      "shapeHash": "sha256:9f921b0d645d262778fe26bdf2928fddc34adea94eefae075778b323fc6302de"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.NotifyHeight",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.NotifyHeight",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(height int)"
+      },
+      "shapeHash": "sha256:96239777167d6e58800a74740dbcaed8b042b1e5f26721df61f618e8a27f4d41"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.NotifyWidth",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.NotifyWidth",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(width int)"
+      },
+      "shapeHash": "sha256:7f4cc9f80a1e39e83ef69b8c1592f519ff7ec7d5b6500f5a9f136e3c01ecb047"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.Reload",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.Reload",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(ctx context.Context) ([]github.com/MichaelKinsy/PiG/coding/extension.Extension, error)"
+      },
+      "shapeHash": "sha256:2f325deb68af23f8b7ee89fd7f3d45a01c2a8b62aac887a14ebf2d4144f4dc91"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.SetCrashHandler",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.SetCrashHandler",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(fn func(name string, delay time.Duration, disabled bool, reason string))"
+      },
+      "shapeHash": "sha256:b8cb228b358fb2ace0b812555bf8a1abea716ef7c3d79df5fb526a77a395f6a6"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.SetHeightFunc",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.SetHeightFunc",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(fn func() int)"
+      },
+      "shapeHash": "sha256:5a1fdecc2c3ba94ce97d4a16f967c88281be40224c0fdc8ded4d498f074532ab"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#reloadingHost.SetWidthFunc",
+      "package": "github.com/MichaelKinsy/PiG/cmd/pig",
+      "name": "reloadingHost.SetWidthFunc",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(fn func() int)"
+      },
+      "shapeHash": "sha256:5a1fdecc2c3ba94ce97d4a16f967c88281be40224c0fdc8ded4d498f074532ab"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/cmd/pig#removeAndPersistPackage",

@@ -169,9 +169,16 @@ func (m *InteractiveMode) replaceExtensionRunner(exts []extension.Extension) []e
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	var bindErrs []error
+	if bind := m.opts.BindInterpretedExtensions; bind != nil {
+		// The previous runner is stale, so no new call reaches the generations it served; the bind publishes the staged ones and retires those.
+		if err := bind(ctx, m.newRunner); err != nil {
+			bindErrs = append(bindErrs, fmt.Errorf("interpreted extensions: %w", err))
+		}
+	}
 	m.setupExtensionShortcutListener(ctx)
 	m.reconfigureRemoteEditor()
-	return m.refreshToolsAfterReload()
+	return append(bindErrs, m.refreshToolsAfterReload()...)
 }
 
 // refreshToolsAfterReload rebuilds the Session's tool registry as a reload does, which activates the tools a settings reload newly added to defaultTools and every extension tool that activates on registration, then the agent's tools.

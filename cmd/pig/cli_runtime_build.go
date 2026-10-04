@@ -100,7 +100,9 @@ type cliBuild struct {
 	ReloadExtensionConfigs func() []subprocess.ExtConfig
 	SubprocessExtensions   []extension.Extension
 	// LetGo owns the interpreted generations this build loaded; its extensions are part of SubprocessExtensions' load order.
-	LetGo                   *letGoSet
+	LetGo *letGoOwner
+	// LetGoConfigs rediscovers the interpreted sources for a reload.
+	LetGoConfigs            func() []subprocess.ExtConfig
 	Host                    *subprocess.Host
 	Bridge                  *subprocess.UIBridge
 	ReloadBuiltinExtensions func() []extension.Extension
@@ -352,6 +354,14 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 		finalExtConfigs, reloadFinalExtConfigs = rpcExtensionConfigs(extraExtConfigs, cwd, b.agentDir, build.RPCSourceInfo), nil
 	}
 	var extensionLoadErrs []error
+	// The owner exists even when startup loaded no interpreted source, so a reload can add one.
+	build.LetGo = newLetGoOwner(nil)
+	startupExtensions.letGo = build.LetGo
+	build.LetGoConfigs = reloadFinalExtConfigs
+	if build.LetGoConfigs == nil {
+		static := finalExtConfigs
+		build.LetGoConfigs = func() []subprocess.ExtConfig { return static }
+	}
 	// pig divergence (D70): every build, including a session replacement's, starts its own extension host and processes.
 	// Pi queues the provider registrations of the extensions it loads and flushes them only after every factory has finished, immediately before an awaited local refresh (agent-session-services.ts:158-182), so no Provider callback runs while extensions load. The hold keeps a registration from starting that refresh early, including for a replacement Session's build (D70).
 	releaseRegistrationRefresh := registry.HoldRegistrationRefresh()
@@ -361,14 +371,10 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 		build.SubprocessExtensions, build.Host, build.Bridge, extensionLoadErrs = loadFinalSubprocessExtensions(ctx, cwd, b.mode.extensionMode(), registry.ModelRegistry, subprocessConfigs, embeddedCells, reloadFinalExtConfigs, startupExtensions)
 		if len(interpreted) > 0 {
 			// pig additive (D89): project trust is resolved by now, so an untrusted project source was never collected into finalExtConfigs.
-			var letGoErrs []error
-			build.LetGo, letGoErrs = loadLetGoSet(ctx, finalExtConfigs)
-			if in.StartupExtensions != nil {
-				// The startup set owns the generations until the Session retires them, so an early exit still runs their shutdown.
-				startupExtensions.letGo = build.LetGo
-			}
+			set, letGoErrs := loadLetGoSet(ctx, finalExtConfigs)
+			build.LetGo.adopt(set)
 			extensionLoadErrs = append(extensionLoadErrs, letGoErrs...)
-			build.SubprocessExtensions = interleaveLetGo(build.SubprocessExtensions, build.LetGo)
+			build.SubprocessExtensions = interleaveLetGo(build.SubprocessExtensions, set)
 		}
 	}
 	virtualModelDiagnostics := flushExtensionHostVirtualModels(build.Host, registry)
@@ -380,7 +386,7 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 	if b.mode == appModeInteractive {
 		// Upstream /reload rediscovers extensions even when none loaded at
 		// startup, so interactive mode keeps a reload-capable host.
-		build.Host, build.Bridge = ensureReloadableExtensionHost(build.Host, build.Bridge, flags.NoExtensions, cwd, registry.ModelRegistry, build.ReloadExtensionConfigs)
+		build.Host, build.Bridge = ensureReloadableExtensionHost(build.Host, build.Bridge, flags.NoExtensions && build.LetGo.empty(), cwd, registry.ModelRegistry, build.ReloadExtensionConfigs)
 		// A host created for /reload has loaded nothing; binding it applies what a reload registers.
 		virtualModelDiagnostics = append(virtualModelDiagnostics, flushExtensionHostVirtualModels(build.Host, registry)...)
 	}
@@ -393,7 +399,7 @@ func (b *cliRuntimeBuilder) buildResources(ctx context.Context, in cliBuildInput
 		if build.Host != nil {
 			build.Host.Shutdown("extension load failure")
 		}
-		closeLetGo(build.LetGo, "extension load failure")
+		closeLetGoOwner(build.LetGo, "extension load failure")
 	}
 	defer func() {
 		if failed {
@@ -437,12 +443,12 @@ func (b *cliBuild) retireExtensions(reason string) {
 	if b.Host != nil {
 		b.Host.Shutdown(reason)
 	}
-	closeLetGo(b.LetGo, reason)
+	closeLetGoOwner(b.LetGo, reason)
 }
 
 // bindExtensions connects the build's interpreted generations to the Session's live runner.
 func (b *cliBuild) bindExtensions(ctx context.Context, runner *inproc.Runner) error {
-	return b.LetGo.bind(ctx, runner)
+	return b.LetGo.attach(ctx, runner)
 }
 
 // buildSession resolves the model, skills, tools and system prompt against the build's resources, as Pi's createRuntime does before createAgentSessionFromServices.

@@ -70,14 +70,16 @@ type InteractiveReplacement struct {
 	ExtensionConflicts      []ExtensionConflict
 	BuiltinExtensions       []extension.Extension
 	ReloadBuiltinExtensions func() []extension.Extension
-	Llama                   *llama.Host
-	SubprocessUIBridge      SubprocessUIBridge
-	SubprocessHost          SubprocessHost
-	ModelLookup             func(providerID, modelID string) *ai.Model
-	ModelCatalog            func() []*ai.Model
-	ModelClassify           func(context.Context, *ai.ClassifierModel, ai.ClassifierContext, ...ai.ModelsClassifierOptions) ai.ClassifierResult
-	ModelGenerateImages     func(context.Context, *ai.ImageModel, ai.ImagesContext, ...ai.ModelsImagesOptions) ai.AssistantImages
-	RequestAuthRuntime      *RequestAuthRuntime
+	// BindInterpretedExtensions is the replacement build's hook for its interpreted extensions.
+	BindInterpretedExtensions func(ctx context.Context, runner *inproc.Runner) error
+	Llama                     *llama.Host
+	SubprocessUIBridge        SubprocessUIBridge
+	SubprocessHost            SubprocessHost
+	ModelLookup               func(providerID, modelID string) *ai.Model
+	ModelCatalog              func() []*ai.Model
+	ModelClassify             func(context.Context, *ai.ClassifierModel, ai.ClassifierContext, ...ai.ModelsClassifierOptions) ai.ClassifierResult
+	ModelGenerateImages       func(context.Context, *ai.ImageModel, ai.ImagesContext, ...ai.ModelsImagesOptions) ai.AssistantImages
+	RequestAuthRuntime        *RequestAuthRuntime
 }
 
 // installRuntimeHooks binds the runtime host to this mode as the constructor of Pi's InteractiveMode does: the mode resets extension UI before the outgoing Session's contexts go stale, drains active work before the outgoing Session aborts, and rebinds to the replacement Session.
@@ -162,6 +164,7 @@ func (m *InteractiveMode) applyReplacement(session InteractiveSessionHandle, r I
 	m.opts.SessionStartEvent = &event
 	m.opts.BuiltinExtensions = r.BuiltinExtensions
 	m.opts.ReloadBuiltinExtensions = r.ReloadBuiltinExtensions
+	m.opts.BindInterpretedExtensions = r.BindInterpretedExtensions
 	m.opts.Llama = r.Llama
 	m.opts.SubprocessUIBridge = r.SubprocessUIBridge
 	m.opts.SubprocessHost = r.SubprocessHost

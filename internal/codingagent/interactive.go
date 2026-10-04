@@ -1054,6 +1054,10 @@ type InteractiveOptions struct {
 	// handler closures and state that upstream discards on reload.
 	ReloadBuiltinExtensions func() []extension.Extension
 
+	// BindInterpretedExtensions connects the interpreted extensions a reload staged to the runner that replaced the previous one. It runs
+	// after the Session bound its actions to the new runner and the previous runner went stale. Nil when the host has none.
+	BindInterpretedExtensions func(ctx context.Context, runner *inproc.Runner) error
+
 	// NoModelWarning carries the interactive-only model-selection diagnostic, including a failed saved-model restoration followed by a fallback.
 	NoModelWarning string
 	// StartupDiagnostics are shown in the chat after the welcome banner.

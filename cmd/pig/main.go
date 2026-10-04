@@ -1258,8 +1258,9 @@ func runStableCLI() {
 	if subprocBridge != nil {
 		iopts.SubprocessUIBridge = subprocBridge
 	}
+	iopts.BindInterpretedExtensions = build.bindExtensions
 	if subprocHost != nil {
-		iopts.SubprocessHost = subprocHost
+		iopts.SubprocessHost = build.reloadHost()
 		// /reload recompiles these, and it is the command reached for after
 		// rebuilding pig, so stage the embedded SDKs first for the same reason
 		// startup does.

@@ -141,7 +141,8 @@ func (b *cliRuntimeBuilder) interactiveReplacement(build *cliBuild, session *cod
 		replacement.SubprocessUIBridge = build.Bridge
 	}
 	if build.Host != nil {
-		replacement.SubprocessHost = build.Host
+		replacement.SubprocessHost = build.reloadHost()
 	}
+	replacement.BindInterpretedExtensions = build.bindExtensions
 	return replacement
 }

@@ -85,3 +85,84 @@ func TestExtensionReloadResolvesInInteractiveMode(t *testing.T) {
 		})
 	}
 }
+
+// A let-go source is replaced by the interactive /reload path: the edited source runs from clean state, a removed command is gone and the old generation shut down.
+func TestLetGoReloadInInteractiveMode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds the pig binary and a Go extension")
+	}
+	binary := buildPigBinaryForSignalTest(t)
+	home, cwd, sessionDir := t.TempDir(), t.TempDir(), t.TempDir()
+	agentDir := filepath.Join(home, "pig")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(agentDir, "settings.json"), []byte(`{"quietStartup":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, shutdown, logPath := filepath.Join(home, "out"), filepath.Join(home, "shutdown"), filepath.Join(home, "reload.log")
+	entry := filepath.Join(home, "reload.lg")
+	writeStartupFixtureFile(t, entry, letGoReloadSource("v1", out, shutdown, "lgver", "lggone"))
+	probe := writeReloadProbe(t, "go")
+	env := []string{"HOME=" + home, "PIG_HOME=" + filepath.Join(home, ".pig"), "PIG_CODING_AGENT_DIR=" + agentDir, "PIG_TEST_FAUX=1", "PIG_TEST_FAUX_SCENARIO=parity-basic", "PIG_OFFLINE=1", "RELOAD_PROBE_LOG=" + logPath, "TERM=xterm-256color"}
+	master, slave := openPTY(t, 40, 160)
+	ctx, cancel := context.WithTimeout(t.Context(), testbudget.Wait(t))
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binary, "--no-extensions", "--model", "test-faux/faux-1", "--session-dir", sessionDir, "-e", probe, "-e", entry, "--no-session", "--approve")
+	cmd.Dir, cmd.Env = cwd, append(os.Environ(), env...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = slave, slave, slave
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
+	output := &ptyOutput{}
+	go func() {
+		buffer := make([]byte, 4096)
+		for {
+			n, err := master.Read(buffer)
+			if n > 0 {
+				_, _ = output.Write(buffer[:n])
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	_ = slave.Close()
+	done := make(chan struct{})
+	go func() { defer close(done); _ = cmd.Wait() }()
+	t.Cleanup(func() { cancel(); <-done; _ = master.Close() })
+	defer func() {
+		if t.Failed() {
+			t.Logf("screen:\n%s", output.since(0))
+		}
+	}()
+	output.waitQuiet(0, []byte("faux-1"), 200*time.Millisecond, testbudget.Wait(t))
+	typeCommand := func(command string) {
+		if _, err := master.Write([]byte("/" + command + "\r")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	typeCommand("lgver")
+	waitForFile(t, out+".lgver", "v1:1")
+
+	writeStartupFixtureFile(t, entry, letGoReloadSource("v2", out, shutdown, "lgver", "lgadded"))
+	typeCommand("reloadme")
+	deadline := time.Now().Add(testbudget.Wait(t))
+	for !strings.Contains(string(mustReadFile(logPath)), "returned") {
+		if time.Now().After(deadline) {
+			t.Fatalf("ctx.reload() did not return; log:\n%s\nscreen:\n%s", mustReadFile(logPath), output.since(0))
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	typeCommand("lgver")
+	waitForFile(t, out+".lgver", "v2:1")
+	typeCommand("lgadded")
+	waitForFile(t, out+".lgadded", "v2:2")
+	waitForFile(t, shutdown, "v1")
+	typeCommand("lggone")
+	time.Sleep(300 * time.Millisecond)
+	if fileExists(out + ".gone") {
+		t.Fatal("a command removed by the edit still ran")
+	}
+}

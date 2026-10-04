@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -12,8 +14,10 @@ import (
 	"time"
 
 	"github.com/MichaelKinsy/PiG/coding/extension"
+	"github.com/MichaelKinsy/PiG/coding/extension/host/inproc"
 	"github.com/MichaelKinsy/PiG/coding/extension/host/letgo"
 	"github.com/MichaelKinsy/PiG/coding/extension/host/subprocess"
+	"github.com/MichaelKinsy/PiG/internal/testbudget"
 )
 
 // letGoStartupEnv is a hermetic home for one binary run. The binary needs no lg executable: let-go is interpreted in process.
@@ -279,4 +283,194 @@ func TestLetGoInterleavePlacesInterpretedExtensionsAtTheirDiscoveryPosition(t *t
 	if len(interpretedConfigs) != 2 || len(others) != 3 || others[0].Name != "a" || others[2].Name != "b" {
 		t.Fatalf("split %v / %v", interpretedConfigs, others)
 	}
+}
+
+func letGoReloadSource(version, out, shutdown string, commands ...string) string {
+	var registered strings.Builder
+	for _, name := range commands {
+		registered.WriteString(`  (ext/register-command! api {:name "` + name + `" :handler (fn [ctx args] (swap! state inc) (spit ` + strconv.Quote(out+"."+name) + ` (str "` + version + `:" @state)))})` + "\n")
+	}
+	return `(ns reload.fixture (:require [pig.extension :as ext]))
+(def state (atom 0))
+(defn init [api]
+` + registered.String() + `  nil)
+(defn shutdown [api] (spit ` + strconv.Quote(shutdown) + ` "` + version + `"))
+`
+}
+
+func rpcCommandNames(t *testing.T, p *rpcProcess, id string) []string {
+	t.Helper()
+	var names []string
+	p.send(`{"id":"` + id + `","type":"get_commands"}`)
+	p.await("the command catalog", func(record rpcRecord) bool {
+		if record["type"] != "response" || record["id"] != id {
+			return false
+		}
+		data, _ := record["data"].(map[string]any)
+		commands, _ := data["commands"].([]any)
+		for _, value := range commands {
+			command, _ := value.(map[string]any)
+			if info, _ := command["sourceInfo"].(map[string]any); info["source"] != "builtin" {
+				names = append(names, command["name"].(string))
+			}
+		}
+		return true
+	})
+	return names
+}
+
+func waitForFile(t *testing.T, path, want string) {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		if got, err := os.ReadFile(path); err == nil && string(got) == want {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	got, _ := os.ReadFile(path)
+	t.Fatalf("%s holds %q, want %q", path, got, want)
+}
+
+// A Go probe extension's command calls ctx.reload(), the production path of a headless reload.
+func TestLetGoReloadPublishesFreshGenerationsAndRetiresTheOldOnes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds the pig binary and a Go extension")
+	}
+	env := newLetGoStartupEnv(t)
+	out, shutdown := filepath.Join(env.home, "out"), filepath.Join(env.home, "shutdown")
+	entry := env.write(t, filepath.Join(env.home, "reload.lg"), letGoReloadSource("v1", out, shutdown, "ver", "gone"))
+	probe, log := writeReloadProbe(t, "go"), filepath.Join(env.home, "reload.log")
+	p := startRPCProcessAt(t, env.cwd, []string{"HOME=" + env.home, "PIG_HOME=" + filepath.Join(env.home, ".pig"), "PIG_CODING_AGENT_DIR=" + env.agentDir, "PIG_TEST_FAUX=1", "PIG_OFFLINE=1", "RELOAD_PROBE_LOG=" + log},
+		"--no-session", "--no-extensions", "-e", probe, "-e", entry)
+	reload := func(id string) {
+		p.send(`{"id":"` + id + `","type":"prompt","message":"/reloadme"}`)
+		p.await("the reload command", func(record rpcRecord) bool { return isSuccessResponse(record, id) })
+		deadline := time.Now().Add(testbudget.Wait(t))
+		for strings.Count(string(mustReadFile(log)), "returned") < map[string]int{"r1": 1, "r2": 2}[id] {
+			if time.Now().After(deadline) {
+				t.Fatalf("ctx.reload() did not return; log:\n%s", mustReadFile(log))
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+	}
+	run := func(id, command string) {
+		p.send(`{"id":"` + id + `","type":"prompt","message":"/` + command + `"}`)
+		p.await("the command", func(record rpcRecord) bool { return isSuccessResponse(record, id) })
+	}
+
+	run("a", "ver")
+	run("b", "ver")
+	waitForFile(t, out+".ver", "v1:2")
+	if names := rpcCommandNames(t, p, "c1"); !slices.Contains(names, "gone") || !slices.Contains(names, "ver") {
+		t.Fatalf("startup commands %v", names)
+	}
+
+	// Edit one command, remove one, add one. The new generation starts from clean interpreter state.
+	env.write(t, entry, letGoReloadSource("v2", out, shutdown, "ver", "added"))
+	reload("r1")
+	run("d", "ver")
+	waitForFile(t, out+".ver", "v2:1")
+	run("e", "added")
+	waitForFile(t, out+".added", "v2:2")
+	names := rpcCommandNames(t, p, "c2")
+	if slices.Contains(names, "gone") || !slices.Contains(names, "added") || !slices.Contains(names, "ver") {
+		t.Fatalf("commands after reload %v", names)
+	}
+	waitForFile(t, shutdown, "v1")
+
+	// A replacement that does not even parse is not loaded, as for any extension that fails to reload; healthy extensions stay.
+	env.write(t, entry, "(ns reload.fixture (defn init [api] (")
+	reload("r2")
+	names = rpcCommandNames(t, p, "c3")
+	if slices.Contains(names, "ver") || slices.Contains(names, "added") || !slices.Contains(names, "reloadme") {
+		t.Fatalf("commands after a broken replacement %v", names)
+	}
+	waitForFile(t, shutdown, "v2")
+	p.closeAndWait("the reloads ran")
+}
+
+// blockingUI holds a select dialog open until released, so a let-go callback is mid-flight when the runner is replaced.
+type blockingUI struct {
+	extension.UIContext
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (u *blockingUI) Select(ctx context.Context, _ string, _ []string, _ extension.ExtensionUIDialogOptions) (string, error) {
+	close(u.entered)
+	select {
+	case <-u.release:
+		return "done", nil
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+}
+
+func TestLetGoOwnerRetiresTheOldGenerationAfterItsRunningCallbackFinishes(t *testing.T) {
+	dir := t.TempDir()
+	shutdown := filepath.Join(dir, "shutdown")
+	source := func(version string) string {
+		return `(ns owner.fixture (:require [pig.extension :as ext]))
+(defn init [api]
+  (ext/register-command! api {:name "block" :handler (fn [ctx args] (spit ` + strconv.Quote(filepath.Join(dir, "finished-"+version)) + ` ((:select ctx) "hold" ["a"])))}))
+(defn shutdown [api] (spit ` + strconv.Quote(shutdown) + ` "` + version + `"))
+`
+	}
+	entry := filepath.Join(dir, "owner.lg")
+	writeStartupFixtureFile(t, entry, source("v1"))
+	config := subprocess.ExtConfig{Name: "owner", Enabled: true, RuntimeKind: "let-go", Entrypoint: entry}
+
+	first, errs := loadLetGoSet(t.Context(), []subprocess.ExtConfig{config})
+	if len(errs) != 0 || first.empty() {
+		t.Fatalf("first load %v", errs)
+	}
+	owner := newLetGoOwner(first)
+	t.Cleanup(func() { _ = owner.Close(context.Background()) })
+	oldRunner := inproc.NewRunner(interleaveLetGo(nil, first), dir)
+	ui := &blockingUI{UIContext: extension.NoopUIContext, entered: make(chan struct{}), release: make(chan struct{})}
+	oldRunner.SetUIContext(ui, extension.ModeTUI)
+	if err := owner.attach(t.Context(), oldRunner); err != nil {
+		t.Fatal(err)
+	}
+	oldHandler := first.loaded[0].Extension.Commands["block"].Handler
+
+	// A reload stages first: evaluating sources enters the interpreter, whose entry is serialized process-wide, so staging cannot wait
+	// behind a callback held open in a dialog. Only after staging does the old callback run, and it is still inside its dialog when
+	// the runner is replaced.
+	writeStartupFixtureFile(t, entry, source("v2"))
+	if errs := owner.stage(t.Context(), []subprocess.ExtConfig{config}); len(errs) != 0 {
+		t.Fatal(errs)
+	}
+	done := make(chan struct{})
+	go func() { defer close(done); oldRunner.ExecuteCommand(t.Context(), "block", "") }()
+	<-ui.entered
+	newRunner := inproc.NewRunner(owner.merge(nil), dir)
+	oldRunner.Invalidate("replaced")
+	if err := owner.attach(t.Context(), newRunner); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	if fileExists(shutdown) {
+		t.Fatal("the old generation ran shutdown while its callback was still running")
+	}
+
+	close(ui.release)
+	<-done
+	waitForFile(t, shutdown, "v1")
+	waitForFile(t, filepath.Join(dir, "finished-v1"), "done")
+	if err := oldHandler(t.Context(), ""); !errors.Is(err, letgo.ErrClosed) {
+		t.Fatalf("a call to the retired generation: %v", err)
+	}
+
+	// The new generation serves and shuts down exactly once, however often Close runs.
+	if !newRunner.ExecuteCommand(t.Context(), "block", "") {
+		t.Fatal("the new generation's command was not handled")
+	}
+	for range 3 {
+		if err := owner.Close(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitForFile(t, shutdown, "v2")
 }

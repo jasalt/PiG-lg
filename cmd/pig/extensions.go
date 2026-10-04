@@ -185,15 +185,18 @@ func startRegistrationRefresh(registry *codingagent.ModelRegistry) {
 // setExtensionConfigLoader makes reloadConfigs the host's reload resolver, or
 // the startup configs when reloadConfigs is nil.
 func setExtensionConfigLoader(host *subprocess.Host, configs []subprocess.ExtConfig, reloadConfigs func() []subprocess.ExtConfig) {
+	// pig additive (D89): interpreted sources never reach the subprocess host, so a reload hands it only the others.
 	if reloadConfigs == nil {
-		startupConfigs := append([]subprocess.ExtConfig(nil), configs...)
+		_, others := splitLetGoConfigs(configs)
+		startupConfigs := append([]subprocess.ExtConfig(nil), others...)
 		host.SetConfigLoader(func() ([]subprocess.ExtConfig, error) {
 			return append([]subprocess.ExtConfig(nil), startupConfigs...), nil
 		})
 		return
 	}
 	host.SetConfigLoader(func() ([]subprocess.ExtConfig, error) {
-		return normalizeRuntimeExtensionConfigs(reloadConfigs()), nil
+		_, others := splitLetGoConfigs(reloadConfigs())
+		return normalizeRuntimeExtensionConfigs(others), nil
 	})
 }
 
@@ -268,7 +271,7 @@ type startupExtensionSet struct {
 	bridge  *subprocess.UIBridge
 	configs []subprocess.ExtConfig
 	// letGo holds the interpreted generations the startup build loaded, so every exit path retires them. Closing is idempotent.
-	letGo *letGoSet
+	letGo *letGoOwner
 }
 
 func (s *startupExtensionSet) close() {
@@ -278,7 +281,7 @@ func (s *startupExtensionSet) close() {
 	if s.host != nil {
 		s.host.Shutdown("quit")
 	}
-	closeLetGo(s.letGo, "quit")
+	closeLetGoOwner(s.letGo, "quit")
 }
 
 var stopStartupExtensions = func() {}

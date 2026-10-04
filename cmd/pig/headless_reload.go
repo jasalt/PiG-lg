@@ -47,13 +47,28 @@ func (b *cliRuntimeBuilder) reloadHeadless(ctx, owner context.Context, build *cl
 	if err := b.reloadBuildResources(build); err != nil {
 		return err
 	}
-	extensions, err := b.reloadBuildExtensions(ctxowner.WithValuesOf(owner, ctx), build)
+	// pig additive (D89): the interpreted sources evaluate again from clean interpreter state before anything is published. A source that
+	// fails is reported and left out, like any extension that fails to reload; the generations that were current serve until the new runner exists.
+	reloadCtx := ctxowner.WithValuesOf(owner, ctx)
+	for _, stageErr := range build.LetGo.stage(reloadCtx, build.LetGoConfigs()) {
+		fmt.Fprintf(os.Stderr, "extension reload: %v\n", stageErr)
+	}
+	defer func() {
+		if err != nil {
+			build.LetGo.abort()
+		}
+	}()
+	extensions, err := b.reloadBuildExtensions(reloadCtx, build)
 	if err != nil {
 		return err
 	}
 	rebuilt = true
 	if _, err := session.ReloadExtensions(extensions); err != nil {
 		return fmt.Errorf("tool reload: %w", err)
+	}
+	// The old runner is stale now, so attach publishes the staged generations, binds them to the new runner and retires the old ones.
+	if err := build.LetGo.attach(ctx, session.ExtensionRunner()); err != nil {
+		return fmt.Errorf("bind interpreted extensions: %w", err)
 	}
 	return rebind(ctx, extension.SessionStartEvent{Type: codingagent.EventSessionStart, Reason: "reload"})
 }
@@ -73,6 +88,7 @@ func (b *cliRuntimeBuilder) reloadBuildResources(build *cliBuild) error {
 
 // reloadBuildExtensions loads the build's extensions again and returns them in load order. The host reloads the file extensions on its own transaction; the built-in extensions load after them (resource-loader.ts:703-735). owner is the context the reloaded extension processes live under: a call's context ends with its command, which must not stop the extensions its reload started.
 func (b *cliRuntimeBuilder) reloadBuildExtensions(owner context.Context, build *cliBuild) ([]extension.Extension, error) {
+	var reloadedSubprocess []extension.Extension
 	if host := build.Host; host != nil {
 		// A reload recompiles out-of-tree extensions, so stage the embedded SDKs first, as startup does.
 		if err := pigsdk.EnsureSynced(codingagent.ConfigRoot()); err != nil {
@@ -85,8 +101,10 @@ func (b *cliRuntimeBuilder) reloadBuildExtensions(owner context.Context, build *
 		if err != nil {
 			return nil, fmt.Errorf("extension reload: %w", err)
 		}
-		build.SubprocessExtensions = reloaded
+		reloadedSubprocess = reloaded
 	}
+	// The staged interpreted extensions take their discovery positions among the reloaded subprocess ones.
+	build.SubprocessExtensions = build.LetGo.merge(reloadedSubprocess)
 	if build.ReloadBuiltinExtensions != nil {
 		build.BuiltinExtensions = build.ReloadBuiltinExtensions()
 	}
