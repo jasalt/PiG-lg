@@ -69,11 +69,15 @@ func (l *Loaded) apiValue(options LoadOptions) (vm.Value, error) {
 	} {
 		api = api.Assoc(vm.Keyword(key), value).(*vm.PersistentMap)
 	}
-	for key, function := range map[string]any{
+	functions := map[string]any{
 		"register-tool!":    l.registerTool,
 		"register-command!": l.registerCommand,
 		"on-event":          l.onEvent,
-	} {
+	}
+	for key, function := range l.resultHooks() {
+		functions[key] = function
+	}
+	for key, function := range functions {
 		boxed, err := vm.NativeFnType.Box(function)
 		if err != nil {
 			return vm.NIL, err

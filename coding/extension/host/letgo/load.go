@@ -61,15 +61,20 @@ type scopedFunction struct {
 	owner     *Loaded
 	token     *invocationToken
 	arguments func(token *invocationToken, ctx vm.Value) []vm.Value
+	// withoutContext skips building the context map for one-argument handlers that never receive it.
+	withoutContext bool
 }
 
 func (f scopedFunction) Invoke([]vm.Value) (vm.Value, error) {
 	f.owner.current = f.token
 	f.token.active = true
 	defer func() { f.token.active = false; f.owner.current = nil }()
-	ctx, err := f.owner.contextValue(f.token)
-	if err != nil {
-		return vm.NIL, err
+	var ctx vm.Value = vm.NIL
+	if !f.withoutContext {
+		var err error
+		if ctx, err = f.owner.contextValue(f.token); err != nil {
+			return vm.NIL, err
+		}
 	}
 	return f.Fn.Invoke(f.arguments(f.token, ctx))
 }
@@ -299,10 +304,19 @@ func (l *Loaded) invokeEvent(ctx context.Context, callback vm.Fn, event vm.Value
 	})
 }
 
+// invokeEventOnly calls a result hook as (event), the Kmet one-argument shape; the callback still runs scoped so captured api closures work.
+func (l *Loaded) invokeEventOnly(ctx context.Context, callback vm.Fn, event vm.Value) (vm.Value, error) {
+	return l.invokeScopedWith(ctx, callback, true, func(*invocationToken, vm.Value) []vm.Value { return []vm.Value{event} })
+}
+
 func (l *Loaded) invokeScoped(ctx context.Context, callback vm.Fn, arguments func(token *invocationToken, callbackContext vm.Value) []vm.Value) (vm.Value, error) {
+	return l.invokeScopedWith(ctx, callback, false, arguments)
+}
+
+func (l *Loaded) invokeScopedWith(ctx context.Context, callback vm.Fn, withoutContext bool, arguments func(token *invocationToken, callbackContext vm.Value) []vm.Value) (vm.Value, error) {
 	token := &invocationToken{owner: l, ctx: ctx}
 	return guardedValue(func() (vm.Value, error) {
-		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token, arguments: arguments}, nil)
+		return l.generation.Invoke(ctx, scopedFunction{Fn: callback, owner: l, token: token, arguments: arguments, withoutContext: withoutContext}, nil)
 	})
 }
 

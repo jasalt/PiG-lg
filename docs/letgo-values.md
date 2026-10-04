@@ -30,6 +30,10 @@ Returned results normalize each key back before decoding. A key that is the exac
 
 The values of these native fields are opaque and keep their keys at any depth: `arguments` and `input` (model-produced tool arguments), `details`, `data`, `structuredContent`, `parameters` (JSON-schema bodies), `headers`, `samplingParams`, `chatTemplateArgs`, `chatTemplateKwargs`, `openRouterRouting`, `vercelGatewayRouting`, and the data-keyed maps `promptCache`, `thinkingLevelMap`, `toolGuidelines`, `toolSnippets` and `variants`. `coding/extension/host/letgo/casing_test.go` builds the inventory of every JSON tag reachable from the approved event, result, message, session-entry and model types by reflection. It checks each tag's round trip, that no two tags share a public spelling, that the verbatim exceptions are exactly the recorded set, and that every loosely typed field is declared either opaque or structured. A new tag or `any` field therefore fails the test until it has a decision.
 
+## Ordered members
+
+A Clojure map has no member order, so conversion never promises one. The one native object where order is semantic, the `before_agent_start` `sections` object, is presented as an ordered vector of `{:name :value}` maps instead of a map. Section names are data, so presenting them as values also keeps them from being re-cased. See the result hook section of [let-go registration](letgo-registration.md).
+
 ## Semantic limits
 
 Conversion creates data snapshots. It does not preserve native aliases, object identity, or authored member order. In particular, JSON roundtripping does not implement `before_agent_start` ordered section mutation or shared collection replacement. Those behaviors require an explicit callback adapter and production-path tests. Codec tests do not prove loader, Session, or command integration.

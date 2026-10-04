@@ -30,7 +30,7 @@ Every active divergence must have:
 
 - D54 — Fenced-code wrapping. Retired after re-probing Pi: `Markdown.render` already wraps every non-image rendered row, including code rows (`markdown.ts` at 0.99.1 still passes each non-image line through `wrapTextWithAnsi`; the only change since 0.87.1 is a token cache). PiG now uses that same final content-width pass and its continuation breakpoints. The ID remains reserved. Evidence: `tui/markdown_upstream_test.go`, `tui/markdown_codeblock_wrap_test.go`, and `test/parity/scenarios/tui-components/16-markdown-user-components.toml`.
 
-## Active divergences (34)
+## Active divergences (35)
 
 D78, D82 and D83 record owner-approved known gaps for 0.3.x (decision 2026-09-28). Approval records a difference; it does not prove parity, waive an unrelated defect, or turn a failing comparison into a pass. Same-process object behavior must remain Pi-exact. See `docs/findings/0.3.0-known-gaps.md` for the integration boundary and retained failures.
 
@@ -1228,5 +1228,23 @@ Evidence: `TestShouldRunFirstTimeSetupGate` (interactive with and without `setti
 Parity allowance: Pi never shows the dialog for a fork, and parity fixtures carry `settings.json`, so no paired scenario compares it.
 
 Remove when: never; the first-run setup is PiG's.
+
+SCRUTINIZED:approved
+
+## D90 let-go before_agent_start handlers cannot mutate the shared system prompt options
+
+What: A Pi extension's `before_agent_start` handler receives `event.systemPromptOptions`, one per-run object shared by every handler. It may edit sections, `selectedTools` and other fields in place, and the edits survive a thrown error and reach later handlers. A let-go handler registered with `on-before-agent-start` receives a read-only snapshot map instead. It returns a replacement map (`:system-prompt`, `:message`) or nil, and the native typed chain applies the result with native ordering and error semantics. The snapshot does not lose what the native options hold: `selectedTools` keeps its raw wire value, including non-string entries a preceding handler set, and `sections` is a vector of `{:name :value}` maps in authored order because a Clojure map has no order. A let-go handler cannot edit sections, selected tools or any other option, and no edit made by one persists after an error.
+
+Why: A persistent Clojure map is an immutable value, so an in-place edit has no meaning. Exposing a mutable options handle would need a generation-owned mutable adapter with its own ordered representation, which the owner did not approve. Kmet's `on-before-agent-start` also returns replacements only.
+
+Owner decision: 2026-10-04, option 6B on `PiG-18s.26`, recorded on `PiG-18s.14`.
+
+Call-site markers: `coding/extension/host/letgo/events.go` (`beforeAgentStartPublic`).
+
+Evidence: `TestBeforeAgentStartHookKeepsRawSelectedToolsAndSectionOrder`, `TestBeforeAgentStartHookChainsInLoadOrderAndNilKeepsPrompt` and `TestBeforeAgentStartHookRejectsMalformedResultsWithoutLosingLaterHandlers` in `coding/extension/host/letgo/hooks_test.go`.
+
+Parity allowance: no paired scenario runs a let-go extension. Pi extensions in other languages keep Pi's in-place semantics through the existing SDKs, which this record does not change.
+
+Remove when: a let-go mutation adapter for the shared options is approved and implemented, or the let-go source realization (D89) is withdrawn.
 
 SCRUTINIZED:approved
