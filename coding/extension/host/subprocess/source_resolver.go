@@ -40,6 +40,7 @@ func ResolveExtConfigWithResolver(path, expectedName string, resolve extsource.R
 		Name:               name,
 		selectedPath:       path,
 		Enabled:            true,
+		Entrypoint:         definition.Entrypoint,
 		RuntimeKind:        "subprocess",
 		RuntimeLanguage:    definition.Language,
 		SDKName:            derivedSDKName(definition),
@@ -49,6 +50,12 @@ func ResolveExtConfigWithResolver(path, expectedName string, resolve extsource.R
 		Package:            definition.Package,
 		Factory:            definition.Factory,
 		GoWorkspaceModules: append([]string(nil), definition.GoWorkspaceModules...),
+	}
+	// pig additive (D89): interpreted sources retain an exact entrypoint and never masquerade as an SDK process.
+	if definition.Language == "let-go" {
+		config.RuntimeKind = "let-go"
+		config.Source = definition.Root
+		return config, &definition, nil
 	}
 	// A conventional Node factory (a default export) packs into the one Node
 	// cell for the session, the way upstream pi hosts every extension in one

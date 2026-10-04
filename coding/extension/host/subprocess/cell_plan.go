@@ -82,6 +82,12 @@ func PlanCells(configs []ExtConfig, quarantined map[string]string) []CellSpec {
 			continue
 		}
 		cfg = normalizeUnresolvedNodeConfig(cfg)
+		// pig additive (D89): non-process runtimes are dispatched by their owner, not isolated or packed cells.
+		if cfg.subprocessRuntimeError() != nil {
+			flush(current)
+			current = nil
+			continue
+		}
 		if isPackableNode(cfg) {
 			flush(current)
 			current = nil

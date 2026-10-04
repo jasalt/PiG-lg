@@ -31,7 +31,7 @@ import (
 	"github.com/MichaelKinsy/PiG/coding/extension/host/runtimecell"
 )
 
-// ExtConfig describes a subprocess extension to load.
+// ExtConfig describes a resolved extension selected for runtime dispatch.
 type ExtConfig struct {
 	nodeRecoveryGroup string
 	// Name is the extension's identifier (must match the name in register).
@@ -59,6 +59,8 @@ type ExtConfig struct {
 
 	// Runtime metadata is derived from the conventional source form. These
 	// fields drive runtime-cell planning and are not authored configuration.
+	// Entrypoint is the exact resolved source file for runtimes that evaluate source directly.
+	Entrypoint         string
 	RuntimeKind        string
 	RuntimeLanguage    string
 	SDKName            string
@@ -75,6 +77,14 @@ type ExtConfig struct {
 	// identity is the extension identity when Name is a host key made unique
 	// for a second copy of the same extension from another path.
 	identity string
+}
+
+// pig additive (D89): interpreted sources cannot enter process or fused-wire admission.
+func (c ExtConfig) subprocessRuntimeError() error {
+	if c.RuntimeLanguage == "let-go" || (c.RuntimeKind != "" && c.RuntimeKind != "subprocess") {
+		return fmt.Errorf("extension %q requires runtime %q, not a subprocess or fused-wire host", c.Name, c.RuntimeKind)
+	}
+	return nil
 }
 
 // acceptsRegisteredName reports whether a registration names this config:
@@ -168,8 +178,12 @@ func (e *ExtensionLoadError) Unwrap() error {
 func unresolvedLoadErrors(configs []ExtConfig) []error {
 	var errs []error
 	for _, config := range configs {
-		if config.resolveErr != nil {
-			errs = append(errs, &ExtensionLoadError{Name: config.Name, Path: config.selectedPath, Err: config.resolveErr})
+		err := config.resolveErr
+		if err == nil && config.Enabled {
+			err = config.subprocessRuntimeError()
+		}
+		if err != nil {
+			errs = append(errs, &ExtensionLoadError{Name: config.Name, Path: config.selectedPath, Err: err})
 		}
 	}
 	return errs
@@ -1041,6 +1055,9 @@ func (h *Host) SetProviderCallbacks(register func(name string, config extension.
 // The extension runs in its own process outside the cell plan, so a later
 // Reload claims that process only when the extension's plan is isolated too.
 func (h *Host) Load(ctx context.Context, cfg ExtConfig) (*extension.Extension, error) {
+	if err := cfg.subprocessRuntimeError(); err != nil {
+		return nil, err
+	}
 	h.recordLoadOrder([]ExtConfig{cfg}, false)
 	// Pi hands every extension of a loader one event bus (resource-loader.ts), so a Node realm added by Load joins the realms already running.
 	h.planEventBus(ctx, PlanCells([]ExtConfig{cfg}, nil))
@@ -1069,6 +1086,9 @@ func (h *Host) Load(ctx context.Context, cfg ExtConfig) (*extension.Extension, e
 // lifecycle are otherwise identical to Load.
 // pig additive (D31): fused in-process extension runtime.
 func (h *Host) LoadInProcess(ctx context.Context, cfg ExtConfig, serve func(net.Conn) error) (*extension.Extension, error) {
+	if err := cfg.subprocessRuntimeError(); err != nil {
+		return nil, err
+	}
 	h.recordLoadOrder([]ExtConfig{cfg}, false)
 	staged, err := h.stageInProcess(ctx, cfg, serve)
 	if err != nil {
@@ -1171,7 +1191,7 @@ func (h *Host) LoadAll(ctx context.Context, configs []ExtConfig) ([]extension.Ex
 	}
 	unresolved := unresolvedLoadErrors(configs)
 	if len(unresolved) > 0 {
-		configs = slices.DeleteFunc(slices.Clone(configs), func(config ExtConfig) bool { return config.resolveErr != nil })
+		configs = slices.DeleteFunc(slices.Clone(configs), func(config ExtConfig) bool { return config.resolveErr != nil || config.subprocessRuntimeError() != nil })
 	}
 	configs = disambiguateIdentities(configs)
 	var loaded []extension.Extension
