@@ -77213,6 +77213,72 @@
       "shapeHash": "sha256:9711ae7e968494b23f5cae06ea6de48d8b5e3dcbeb1748a8bc59ee5514e4ecc8"
     },
     {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction",
+      "kind": "type",
+      "exported": false,
+      "shape": {
+        "type": "onceFunction"
+      },
+      "shapeHash": "sha256:b39bf08220c9df970c0620d33b5dff8ebc63d95a6e45c30ab65e126c70794ead"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Arity",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction.Arity",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() int"
+      },
+      "shapeHash": "sha256:abda90b0a9dee566c1c4d8a5e69e5e1e0dc21a5f6a3f00ada27ad225d1a5f10b"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Invoke",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction.Invoke",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func(args []github.com/nooga/let-go/pkg/vm.Value) (github.com/nooga/let-go/pkg/vm.Value, error)"
+      },
+      "shapeHash": "sha256:5dd0015d9b4f7d4836218ae8acbc347f02c3dcb35a2dae7e3a6fec3122605ee6"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.String",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction.String",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() string"
+      },
+      "shapeHash": "sha256:31cac5b359d9888bdbe3fe08c486b2e404a728edce6e0aaaa60e59ceafc92fb5"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Type",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction.Type",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() github.com/nooga/let-go/pkg/vm.ValueType"
+      },
+      "shapeHash": "sha256:6f3ea272cf277fa58bbdf32f821026753abe7492111e04ba382c8086ca46e776"
+    },
+    {
+      "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Unbox",
+      "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
+      "name": "onceFunction.Unbox",
+      "kind": "function",
+      "exported": true,
+      "shape": {
+        "type": "func() any"
+      },
+      "shapeHash": "sha256:6b40cbb40507b7efce1d433d06fed509e653a5671897ef0381b72bf3dce3329e"
+    },
+    {
       "id": "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#processHost",
       "package": "github.com/MichaelKinsy/PiG/coding/extension/host/letgo",
       "name": "processHost",

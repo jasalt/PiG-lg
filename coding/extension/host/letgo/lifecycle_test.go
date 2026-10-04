@@ -1,6 +1,9 @@
 package letgo
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,5 +76,93 @@ func TestLifecycleActivationErrorsPublishNothing(t *testing.T) {
 				t.Fatalf("loaded=%v err=%v, want %q", loaded, err, test.want)
 			}
 		})
+	}
+}
+
+func loadWithOutput(t *testing.T, source string) (*Loaded, *bytes.Buffer, error) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "extension.lg")
+	if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	loaded, err := Load(t.Context(), LoadOptions{Entrypoint: path, Identity: extension.Extension{Name: "test", Path: path}, Streams: Streams{Stdout: &out}})
+	return loaded, &out, err
+}
+
+const shutdownProbe = `(ns pig.lifecycle.probe (:require [pig.extension :as pig]))
+ (def saved (atom nil))
+ (defn init [api] (reset! saved api) (pig/register-command! api "noop" {:handler (fn [c args] nil)}))
+ (defn shutdown [api]
+   (println "shutdown" (identical? api @saved))
+   (println (try (pig/register-tool! api {:name "late" :parameters {:type "object"} :execute (fn [c p] {:content []})}) "registered" (catch e "rejected"))))`
+
+func TestShutdownRunsOnceWithInitAPIAndRejectsRegistration(t *testing.T) {
+	loaded, out, err := loadWithOutput(t, shutdownProbe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := loaded.Close(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := loaded.Close(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "shutdown true\nrejected\n" {
+		t.Fatalf("shutdown output %q", got)
+	}
+}
+
+func TestShutdownRetriesAfterCancelledClose(t *testing.T) {
+	loaded, out, err := loadWithOutput(t, shutdownProbe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := loaded.Close(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled close: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("shutdown ran without VM entry: %q", out.String())
+	}
+	for range 2 {
+		if err := loaded.Close(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := strings.Count(out.String(), "shutdown "); got != 1 {
+		t.Fatalf("shutdown ran %d times: %q", got, out.String())
+	}
+}
+
+func TestShutdownFailureStillClosesGeneration(t *testing.T) {
+	loaded, _, err := loadWithOutput(t, `(ns pig.lifecycle.failing (:require [pig.extension :as pig]))
+ (defn init [api] (pig/register-command! api "noop" {:handler (fn [c args] nil)}))
+ (defn shutdown [api] (throw (ex-info "shutdown failed" {})))`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := loaded.Extension.Commands["noop"]
+	if err := loaded.Close(t.Context()); err == nil || !strings.Contains(err.Error(), "shutdown failed") || !strings.Contains(err.Error(), ": shutdown:") {
+		t.Fatalf("shutdown failure not reported: %v", err)
+	}
+	if err := command.Handler(t.Context(), ""); !errors.Is(err, ErrClosed) {
+		t.Fatalf("generation still callable after failed shutdown: %v", err)
+	}
+	if err := loaded.Close(t.Context()); err != nil {
+		t.Fatalf("retry after failed shutdown re-ran it: %v", err)
+	}
+}
+
+func TestShutdownSkippedAfterFailedInit(t *testing.T) {
+	_, out, err := loadWithOutput(t, `(ns pig.lifecycle.noinit)
+ (defn init [api] (throw (ex-info "init failed" {})))
+ (defn shutdown [api] (println "shutdown"))`)
+	if err == nil || !strings.Contains(err.Error(), "init failed") {
+		t.Fatalf("init failure: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("shutdown ran after failed init: %q", out.String())
 	}
 }

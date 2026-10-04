@@ -34,6 +34,8 @@ type Loaded struct {
 	current        *invocationToken // accessed only under the generation's VM gate
 	api            vm.Value
 	entry          entryFunctions
+	activated      bool         // init returned; shutdown is owed
+	shutdownRan    bool         // accessed only under the generation's VM gate
 	latestSignal   *signalToken // accessed only under the generation's VM gate
 }
 
@@ -113,6 +115,7 @@ func Load(ctx context.Context, options LoadOptions) (_ *Loaded, err error) {
 	}); err != nil {
 		return nil, loaded.phaseError("init", err)
 	}
+	loaded.activated = true
 	loaded.Extension, err = loaded.registrations.snapshot()
 	if err != nil {
 		return nil, loaded.phaseError("publish", err)
@@ -268,8 +271,31 @@ func (l *Loaded) Bind(ctx *extension.Context) error {
 	return l.registrations.bind(func() error { _, err := ctx.CWD(); return err }, ctx.RefreshTools)
 }
 
-// Close rejects registrations and drains the owned generation. It is safe to retry after cancellation.
+// Close rejects registrations, runs the optional shutdown at most once, and drains the owned generation.
+// It is safe to retry after cancellation; a shutdown failure is reported but never prevents teardown.
 func (l *Loaded) Close(ctx context.Context) error {
 	l.registrations.close()
-	return l.generation.Close(ctx)
+	var shutdownErr error
+	if l.activated && l.entry.shutdown != nil {
+		if _, err := guardedValue(func() (vm.Value, error) {
+			return l.generation.Invoke(ctx, onceFunction{Fn: l.entry.shutdown, ran: &l.shutdownRan}, []vm.Value{l.api})
+		}); err != nil && !errors.Is(err, ErrClosed) {
+			shutdownErr = l.phaseError("shutdown", err)
+		}
+	}
+	return errors.Join(shutdownErr, l.generation.Close(ctx))
+}
+
+// onceFunction marks itself run only after VM entry, so a Close cancelled while waiting can still run shutdown on retry.
+type onceFunction struct {
+	vm.Fn
+	ran *bool
+}
+
+func (f onceFunction) Invoke(args []vm.Value) (vm.Value, error) {
+	if *f.ran {
+		return vm.NIL, nil
+	}
+	*f.ran = true
+	return f.Fn.Invoke(args)
 }

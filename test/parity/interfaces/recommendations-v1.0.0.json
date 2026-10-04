@@ -42139,7 +42139,7 @@
       "recommendedDisposition": "pending",
       "confidence": "low",
       "basis": [
-        "14 normalized-name Pig candidates are ambiguous."
+        "15 normalized-name Pig candidates are ambiguous."
       ],
       "alternatives": [
         "ported",
@@ -42158,6 +42158,7 @@
         "go:github.com/MichaelKinsy/PiG/ai#AuthTextPrompt.Type",
         "go:github.com/MichaelKinsy/PiG/ai#AuthURLEvent.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#invocationToken.Type",
+        "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#scopedFunction.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#signalToken.Type",
         "go:github.com/MichaelKinsy/PiG/internal/codingagent#markedCodeBlock.Type",
@@ -95243,7 +95244,7 @@
       "recommendedDisposition": "pending",
       "confidence": "low",
       "basis": [
-        "14 normalized-name Pig candidates are ambiguous."
+        "15 normalized-name Pig candidates are ambiguous."
       ],
       "alternatives": [
         "ported",
@@ -95262,6 +95263,7 @@
         "go:github.com/MichaelKinsy/PiG/ai#AuthTextPrompt.Type",
         "go:github.com/MichaelKinsy/PiG/ai#AuthURLEvent.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#invocationToken.Type",
+        "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#onceFunction.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#scopedFunction.Type",
         "go:github.com/MichaelKinsy/PiG/coding/extension/host/letgo#signalToken.Type",
         "go:github.com/MichaelKinsy/PiG/internal/codingagent#markedCodeBlock.Type",
