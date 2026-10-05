@@ -205,5 +205,4 @@ GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build github.com/nooga/let-go/pkg/rt
 
 **Source evidence:** `pkg/rt/term.go` has the build constraint `!js && !plan9 && !wasip1`, which includes Windows. Its `setupWinch`, `nativeKeySource.readRaw` and `nativeKeySource.rawPending` implementations require Unix signals, polling and ioctls. Importing the runtime compiles these operations even when an embedder never calls a terminal primitive.
 
-**PiG disposition:** The Windows branches of `make vet` and therefore `make check` and `make verify` fail on this dependency. PiG does not skip the branches or silently remove the interpreted runtime on Windows. `PiG-18s.42` tracks the unresolved dependency strategy and remains a prerequisite of the v1 regression gate. A native let-go test pass does not close this platform failure.
-
+**PiG disposition:** The Windows branches of `make vet` and therefore unmodified `make check` and `make verify` fail on this dependency. The owner explicitly excludes Windows from the let-go v1 regression gate (`PiG-18s.42`); the compile failure remains deferred and unfixed. Qualification runs native and Android vet separately and omits the combined `vet` prerequisite from the remaining gates. This exception does not establish Windows support or turn a native let-go test pass into platform evidence.
