@@ -663,7 +663,7 @@ A new user can scaffold, validate, load, invoke, edit, reload, and diagnose a le
 
 ## Phase 6 — Conformance and regression gate
 
-Do not call the feature complete based only on adapter unit tests.
+Require the full regression gate before accepting the implementation; adapter unit tests alone are insufficient.
 
 ### 6.1 Add let-go to extension conformance where semantically applicable
 
