@@ -3,301 +3,121 @@ SPDX-FileCopyrightText: Copyright Hewlett Packard Enterprise Development LP
 SPDX-License-Identifier: MIT
 -->
 
-<p align="center">
-  <img src="docs/assets/pig-project-banner.png" alt="PiG project banner: There are many agent harnesses, but this one is yours. Meet Pi-in-Go.">
-</p>
+# PiG-lg
 
-# PiG
+This experimental fork explores trusted, in-process Clojure extensions using [let-go](https://github.com/nooga/let-go), with `.cljc` source portability between PiG and Kmet. It is not a separate supported PiG release or a claim of full Kmet compatibility.
 
-[![CI](https://github.com/MichaelKinsy/PiG/actions/workflows/ci.yml/badge.svg)](https://github.com/MichaelKinsy/PiG/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/MichaelKinsy/PiG/actions/workflows/security.yml/badge.svg)](https://github.com/MichaelKinsy/PiG/actions/workflows/security.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/MichaelKinsy/PiG/badge)](https://scorecard.dev/viewer/?uri=github.com/MichaelKinsy/PiG)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14941/badge)](https://www.bestpractices.dev/projects/14941)
-[![REUSE status](https://api.reuse.software/badge/github.com/MichaelKinsy/PiG)](https://api.reuse.software/info/github.com/MichaelKinsy/PiG)
-[![Go Reference](https://pkg.go.dev/badge/github.com/MichaelKinsy/PiG.svg)](https://pkg.go.dev/github.com/MichaelKinsy/PiG)
-[![Minimum Go version](https://img.shields.io/github/go-mod/go-version/MichaelKinsy/PiG?label=Go%20%E2%89%A5)](go.mod)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/MichaelKinsy/PiG?sort=semver)](https://github.com/MichaelKinsy/PiG/releases)
-[![Pi pin 1.0.0](https://img.shields.io/badge/Pi%20pin-1.0.0-8A2BE2)](https://github.com/earendil-works/pi/releases/tag/v1.0.0)
-[![Pi port progress](.github/badges/parity-coverage.svg)](test/parity/coverage.md)
-[![Follow PiG on X](https://img.shields.io/badge/X-%40PiGCodingAgent-000000?logo=x&logoColor=white)](https://x.com/PiGCodingAgent)
-[![Join r/PiGCodingAgent](https://img.shields.io/badge/Reddit-r%2FPiGCodingAgent-FF4500?logo=reddit&logoColor=white)](https://www.reddit.com/r/PiGCodingAgent/)
+For the underlying agent, installation, and general documentation, read the **[original PiG README](https://github.com/MichaelKinsy/PiG/blob/main/README.md)**. PiG is a faithful Go implementation of [Pi](https://github.com/earendil-works/pi), the reference implementation ([Pi documentation](https://pi.dev/docs/latest)). Michael Kinsy created PiG, which was originally developed at Hewlett Packard Enterprise. This fork does not imply endorsement by PiG, Pi, or HPE.
 
-PiG is [Pi](https://github.com/earendil-works/pi), the minimal and extensible coding agent for the terminal, rebuilt in Go as one native binary. It starts quickly, needs no Node.js, and runs Pi's TypeScript extensions unchanged. You can also write extensions in Go, Rust, or Python, and bundle extensions, skills, and prompts into a Piglet: one named agent you can share or build into its own executable.
+## What this fork explores
 
-PiG is a pre-stable 0.x release. Core paths are ported and checked against Pi 1.0.0 with paired parity scenarios; edge cases are still hardening. See the [port status](test/parity/coverage.md) and [file map](docs/parity/PORT_MAP.md) for current scope and evidence.
+- Load explicitly selected `.lg` and `.cljc` extensions without an extension compiler, SDK, or separate `lg` executable.
+- Register supported capabilities through PiG's existing native extension runner.
+- Share pure Clojure logic between PiG and Kmet, with reader conditionals at host boundaries.
+- Determine which generic host bindings and runtime facilities real extensions need.
 
-If PiG behaves differently from Pi, that is either a bug or a documented divergence. Windows support is a preview.
+The binary remains `pig`. The interpreted source realization is recorded as [D89](docs/additive-features.md#d89-approved-let-go-source-realization). The experiments do not introduce a general plugin loader or privileged `pig.internal.*` scripting API.
 
-## Install
+## Current integration state
 
-On macOS, Linux, or Android with [Termux](docs/site/docs/termux.md) (arm64):
+The following describes the implementation in this checkout, not the capabilities of an arbitrary installed PiG binary.
 
-```bash
-curl -fsSL https://pi-in-go.dev/install.sh | sh
-```
+| Area | Current scope |
+| --- | --- |
+| Source selection | Exact `.lg` or `.cljc` files; directories containing `extension.lg` or `extension.cljc`. Select an exact file if both entries exist. |
+| Startup | Normal extension discovery and explicit `-e`, subject to project trust. `--no-extensions` still permits explicitly selected `-e` sources. |
+| Registration | Tools, commands, five lifecycle events, and before-agent-start/tool-call/tool-result hooks. |
+| Context and UI | Model and working-directory snapshots, supported live reads, notifications, select, confirm, and input dialogs. |
+| Reload | Fresh generations, removed registrations, and retirement of old callbacks; optional `shutdown` runs when a successfully initialized generation closes. |
+| Authoring | `.cljc` scaffolding by default; `--lg` selects let-go-only source. Validation evaluates source and calls `init`. |
+| Portability | A tested common subset, not JVM, Babashka-library, or complete Kmet API compatibility. |
 
-On Windows, in PowerShell:
+Important limits:
 
-```powershell
-irm https://pi-in-go.dev/install.ps1 | iex
-```
+- Resolved model authentication, keyed footer status, theme APIs, and model-selection events are not exposed by the documented let-go subset.
+- Providers, custom renderers, widgets, and many other SDK capabilities remain outside that subset.
+- The before-agent-start system-prompt options are read-only ([D90](docs/parity/DIVERGENCES.md)).
+- Interpreter entry is serialized process-wide. Pure interpreted CPU work is cooperative, not preempted. Do not assume Go-style or Kmet-style background execution.
+- Printed output is discarded. Use tool results or supported UI calls rather than `println` for visible output.
 
-With npm, on any supported platform:
+See the [author guide](docs/letgo-extensions.md), [registration and reload contract](docs/letgo-registration.md), [context API](docs/letgo-context.md), [value boundary](docs/letgo-values.md), and [lifetime evidence and limitations](docs/letgo-lifetime.md). The [Kmet compatibility document](docs/letgo-kmet-compat.md) lists measured common behavior and known differences. These documents and their cited tests define the scope; this README does not claim that all gates were rerun for this documentation change.
 
-```bash
-npm install -g @pi-in-go/pig
-```
+## Experiment on Linux
 
-With Go:
+Build this checkout with **Go 1.27.1**. Do not rely on an older `pig` elsewhere on `PATH` or an upstream release to contain this experiment.
 
 ```bash
-go install github.com/MichaelKinsy/PiG/cmd/pig@latest
-```
-
-You can also download an archive from [GitHub Releases](https://github.com/MichaelKinsy/PiG/releases) or [build from source](#build-from-source). [pi-in-go.dev/install](https://pi-in-go.dev/install) covers every method, including updates and uninstalling.
-
-## Quick start
-
-Start PiG in the directory where you want it to work, run `/login` to connect a subscription or set your provider's API key (for example `OPENAI_API_KEY`), then ask it something:
-
-```bash
-cd /path/to/project
-pig
-```
-
-Interactive `/login` masks secret input by default. Turn off **Mask secret input** in `/settings` to restore Pi's plain-text typing and submitted input (D80). See [login privacy](docs/site/docs/providers.md#authentication).
-
-The [documentation](https://pi-in-go.dev/docs/latest) covers everything else, starting with the [quickstart](https://pi-in-go.dev/docs/latest/quickstart). You can also ask PiG to explain itself.
-
-## Upstream Pi
-
-Pi is the reference implementation. PiG follows Pi's behavior and design unless a Go constraint or an approved product-neutral requirement makes a difference necessary.
-
-Use the upstream project for Pi itself:
-
-- [Pi source](https://github.com/earendil-works/pi)
-- [Pi documentation](https://pi.dev/docs/latest)
-- [Earendil Works](https://github.com/earendil-works)
-- [Pi community](https://discord.com/invite/3cU7Bz4UPx)
-
-PiG is not an official Pi release. The Pi maintainers do not endorse PiG.
-
-## Origins
-
-Michael Kinsy created PiG working at Hewlett Packard Enterprise.
-
-PiG is maintained as an independent open-source project. Project decisions, issues, and contributions belong in this repository. See [docs/project/GOVERNANCE.md](docs/project/GOVERNANCE.md) and [docs/project/MAINTAINERS.md](docs/project/MAINTAINERS.md).
-
-## Compatibility philosophy
-
-PiG adds a Go implementation to the Pi ecosystem and follows the Pi reference implementation.
-
-- Preserve observable compatibility with Pi.
-- Treat the pinned Pi release as the reference behavior.
-- Minimize unnecessary divergence.
-- Record each intentional user-visible or interoperability difference.
-- Prefer changes that reduce the cost of the next upstream sync.
-- Share generally useful findings with the broader ecosystem when the contribution route permits it.
-
-The pinned Pi release is 0.99.1 at commit `d86654abb8862e201933517d6f1fce9f88dd117f`. The pin names the behavior oracle. It does not claim that every upstream change is already ported: [`test/parity/coverage.md`](test/parity/coverage.md) reports verified behavior, and the upgrade ledgers under [`test/parity/upstream-sync/`](test/parity/upstream-sync/) list each upstream change and its disposition.
-
-PiG's current package scope covers Pi's agent, AI, coding-agent, and TUI
-packages. It does not implement Pi's experimental remote Session packages or
-its standalone telemetry and evaluation packages. See
-[`docs/parity/PORT_MAP.md`](docs/parity/PORT_MAP.md) for the exact boundary.
-
-## Project facts
-
-- Binary: `pig`
-- Go module: `github.com/MichaelKinsy/PiG`
-- Configuration root: `~/.pig/`, or `PIG_HOME`
-- Agent directory: `~/.pig/agent`, or `PIG_CODING_AGENT_DIR`
-- Pi version pin: [`internal/coding/pigversion/pigversion.go`](internal/coding/pigversion/pigversion.go)
-- Local upstream mirror: `.upstream/current/`
-- Main verification gate: `make check`
-- Full verification and coverage refresh: `make verify`
-
-`pig --version` prints PiG's version as `<PiG release>+<Pi release>`, for example `0.3.0+0.99.1` (D63): the Pi release is semver build metadata, so the version sorts as the PiG release. `pig version` prints the PiG release and the pinned Pi release as separate fields. Neither command reads user configuration.
-
-## Repository map
-
-| Path          | Responsibility                                                                     |
-| ------------- | ---------------------------------------------------------------------------------- |
-| `agent/`      | Pi-compatible Agent loop, messages, and harness Session state.                     |
-| `ai/`         | Pi-compatible providers, model catalog, authentication, and streaming types.       |
-| `coding/`     | Public coding-agent SDK, extension contracts, Package support, and Piglet support. |
-| `tui/`        | Public terminal components, rendering, input, and terminal lifecycle.              |
-| `cmd/pig/`    | Stock PiG command-line application and RPC process surface.                        |
-| `internal/`   | Private implementation used by Stock PiG. External modules cannot import it.       |
-| `extensions/` | Go, Rust, Python, and declaration-only TypeScript extension SDKs.                  |
-| `piglets/`    | Explicit agent compositions such as PiG Standard and Pig Porter.                   |
-| `test/parity/`     | Pinned Pi correspondence, scenarios, inventories, and generated evidence.          |
-| `test/`      | Integration, extension-conformance, clean-repository, and upstream-contract tests. |
-| `docs/`       | Maintainer references and the static public documentation site.                    |
-| `examples/`   | Small extension and embedding examples.                                            |
-| `automation/` | Build, generation, CI, release, layout, and maintainer tooling. |
-
-PiG aligns public package boundaries with Pi's `agent`, `ai`, `coding-agent`,
-and `tui` packages. Go files within a package follow cohesive implementation
-responsibilities instead of mirroring TypeScript file mechanics. `docs/parity/PORT_MAP.md`
-records every source correspondence.
-
-## Stock PiG and compositions
-
-Stock PiG is the product-neutral binary built from this repository. It does not
-activate PiG Standard Resources, product authentication, product APIs, or
-deployment-specific behavior.
-
-A Piglet explicitly selects Resources, tools, discovery, defaults, and environment requirements for one agent. A Package distributes Resources. A Package never owns or activates a Piglet. A Piglet Binary is a direct executable build output for one pinned Piglet composition.
-
-PiG Standard is the explicit Piglet at
-[`piglets/standard/pig-standard.yaml`](piglets/standard/pig-standard.yaml).
-It currently selects the extension-provided PiG login, sprite catalogue, and
-PiG Runner. Run it from source with:
-
-```bash
-pig --piglet piglets/standard/pig-standard.yaml
-```
-
-Stock PiG never selects this composition implicitly. A Package can distribute
-its Resources, but a Package cannot own or activate the Piglet.
-
-See [CONTEXT.md](docs/project/CONTEXT.md) and [docs/README.md](docs/README.md) for the project terms and documentation map.
-
-## Security boundary
-
-PiG runs with the permissions of the user who starts it. PiG does not provide a security sandbox for model output, tools, extensions, skills, hooks, or shell commands.
-
-Use a container, virtual machine, or another operating-system boundary when you need isolation. Load extensions and project instructions only from sources you trust. See [.github/SECURITY.md](.github/SECURITY.md).
-
-## Install with npm
-
-Install the command with npm (Node.js 18 or newer):
-
-```bash
-npm install -g @pi-in-go/pig
-pig --version
-```
-
-Or run it once without installing:
-
-```bash
-npx @pi-in-go/pig --version
-```
-
-`pig` itself is the native binary: npm installs the matching platform package
-(`@pi-in-go/pig-<os>-<cpu>`, for macOS, Linux and Windows on x64 and arm64, and Android on arm64 for Termux) as
-an optional dependency, and Node.js runs only a small launcher. Do not install
-with `--omit=optional` or `--no-optional`, which leaves the binary out. Update
-with `npm update -g @pi-in-go/pig` and uninstall with
-`npm uninstall -g @pi-in-go/pig`. `pig update` does not replace an
-npm-installed binary; update through npm.
-
-## Install with Go
-
-Install the command without a source checkout with Go 1.26 or newer:
-
-```bash
-go install github.com/MichaelKinsy/PiG/cmd/pig@latest
-```
-
-Go writes the `pig` executable to `GOBIN`, or to the `bin` directory of the first
-`GOPATH` entry when `GOBIN` is unset: `$(go env GOPATH)/bin`, which is
-`~/go/bin` by default (`%USERPROFILE%\go\bin` on Windows). Add that directory to
-`PATH`. With an older Go 1.21 or later and the default `GOTOOLCHAIN=auto`, Go
-downloads a new enough toolchain automatically. Release binaries are built with
-Go 1.27.1.
-
-Use an exact release such as `@v0.2.0` when reproducibility matters. Update a Go
-installation by running `go install` again. Each release tags the root module
-(`v0.2.0`) and the Go extension SDK module (`extensions/sdk/v0.2.0`) on the same
-commit; `go install` needs both.
-
-## Build from source
-
-PiG currently supports source builds on Linux, macOS, and Windows. Do not treat a platform as release-supported until its native release verification passes.
-
-Requirements:
-
-- Go 1.27.1
-- Git
-- macOS 13 or later for native macOS builds
-- Node.js 24.19.0 and npm 12.1.0 for parity tooling
-- Python 3.12 for Python SDK tests
-- Rust 1.97.1 for Rust SDK tests
-- tmux for terminal parity tests on Unix
-
-Build the binary:
-
-```bash
-go build -o bin/pig ./cmd/pig
+GOTOOLCHAIN=go1.27.1 go build -o bin/pig ./cmd/pig
 ./bin/pig --version
 ```
 
-Prepare the exact Pi comparator and source mirror:
+Create an isolated configuration directory and a portable example outside the repository:
 
 ```bash
-make upstream-mirror
+export PIG_HOME="$(mktemp -d)"
+export PIG_CODING_AGENT_DIR="$PIG_HOME/agent"
+EXPERIMENT_DIR="$(mktemp -d)"
+
+./bin/pig extension init "$EXPERIMENT_DIR/hello" --lang let-go
+./bin/pig install "$EXPERIMENT_DIR/hello" --validate-only --json
+./bin/pig --no-extensions -e "$EXPERIMENT_DIR/hello/extension.cljc"
 ```
 
-Run the main local gate:
+In the session, run `/hello Linux`. The scaffold displays a greeting through a notification. It also registers a `hello_ping` tool. Configure a provider in this isolated home if you want the model to call that tool. The example does not copy your usual PiG credentials.
+
+Edit the generated source, then run `/reload` in the session. For a let-go-only example, add `--lg` to the scaffold command and select the generated `extension.lg` instead.
+
+You can also select the checked-in fixtures from the repository root:
 
 ```bash
-make check
+./bin/pig --no-extensions -e ./test/fixtures/extensions/letgo/full/extension.lg
+./bin/pig --no-extensions -e ./test/fixtures/extensions/letgo/cljc/extension.cljc
 ```
 
-The `upstream-mirror` target installs the lockfile-pinned Pi package. It retrieves the exact tagged Pi source and verifies its commit against [`internal/coding/pigversion/pigversion.go`](internal/coding/pigversion/pigversion.go).
+These are test fixtures, not complete user-facing plugins. Prefer the scaffold for an interactive first experiment.
 
-## Contract model
+If PiG reports `spawn ... extension.cljc: permission denied`, it tried to execute the source instead of interpreting it. Do not fix this with `chmod`. Rebuild this checkout and use `./bin/pig`; if the error persists, investigate source routing.
 
-- `.upstream/current/` is the local source-language mirror.
-- Go code is the target implementation.
-- [`docs/parity/PORT_MAP.md`](docs/parity/PORT_MAP.md) maps tracked upstream files.
-- `test/parity/scenarios/` records observed behavior.
-- [`test/parity/coverage.md`](test/parity/coverage.md) reports generated verification status.
-- [`docs/parity/DIVERGENCES.md`](docs/parity/DIVERGENCES.md) records intentional differences.
-- [`AGENTS.md`](AGENTS.md) defines maintenance rules.
-- [`Makefile`](Makefile) defines build, test, parity, and release gates.
+**Only load trusted source.** Validation also executes extension code. Let-go runs inside PiG with your privileges and is not sandboxed. An isolated configuration directory separates settings; it does not isolate filesystem access, networking, or resource consumption. Use an OS sandbox or VM when needed.
 
-A ported row means that code exists. It does not prove behavioral compatibility. A non-deferred scenario must exercise and assert the mapped behavior.
+### Focused checks
 
-## Extensions
+```bash
+GOTOOLCHAIN=go1.27.1 go test ./coding/extension/host/letgo
+GOTOOLCHAIN=go1.27.1 go test ./test/extension-conformance -run LetGoConformance
+GOTOOLCHAIN=go1.27.1 go test ./cmd/pig -run LetGo
+```
 
-PiG supports Go, Rust, Python, and Node extension factories through its public extension host. Extensions can register tools, commands, event handlers, flags, shortcuts, providers, and user-interface contributions.
+These exercise the loader, supported native-reference conformance, and CLI integration. They are not substitutes for the repository-wide gates. The [Kmet compatibility guide](docs/letgo-kmet-compat.md#the-gate) describes the separate cross-host fixture check and its limitations.
 
-Node extensions use Pi's TypeScript extension API. PiG supplies compatible
-runtime modules. The declaration-only package in `extensions/sdk-ts` adds types
-for PiG-only extension capabilities without replacing Pi's TypeScript runtime.
+## Case study: porting Codex usage
 
-Start with:
+Codex usage is a useful boundary test because it needs more than command registration. It resolves host-managed credentials, queries usage and reset-credit endpoints, displays remaining quota, refreshes on model changes and a timer, and prevents stale responses from updating the UI.
 
-- [Extension authoring](docs/extension-authoring.md)
-- [Extension API parity](docs/extension-api-parity.md)
-- [Extension runtime cells](docs/extension-runtime-cells.md)
+The assessment compares an existing Kmet implementation with an existing PiG Go SDK factory. **The `.cljc` port is not implemented.** Its required capability expansion is not approved by this README.
 
-Use `pig extension init <directory>` to scaffold an extension. Use `pig install <path> --validate-only --json` to validate it.
+| Concern | Porting approach |
+| --- | --- |
+| Usage windows, percentages, and reset results | Share pure `.cljc` logic and common input/output fixtures. |
+| Host authentication | Bind existing PiG auth-resolution semantics; never bypass refresh and configured headers by reading auth files. |
+| Footer and events | Add generic bindings for existing status/theme and model-selection capabilities, not Codex-specific host code. |
+| Explicit output | PiG Go uses notifications, already available in let-go. Kmet uses a different interactive presentation. Choose the target behavior explicitly. |
+| HTTP, JSON, JWT, and dates | Audit interpreter facilities and isolate host-specific libraries behind adapters. `.cljc` does not make JVM dependencies portable. |
+| Polling and cancellation | Preserve generation ownership, superseded-request cancellation, stale-publication checks, and shutdown draining without holding the interpreter lock during network waits. |
+| Reset redemption | Treat activation as an account mutation. Do not retry automatically: cancellation does not prove nondelivery. Test with dummy accounts. |
 
-## Supply-chain evidence
+The Go factory already separates its host adapter, domain logic, HTTP transport, and lifetime owner. It is a behavioral reference for PiG, not an instruction to translate goroutines directly into interpreted callbacks. The Kmet and Go versions also differ in originator headers, output, credential redaction, and some formatting rules.
 
-PiG treats scanner output as evidence input, not as proof by itself. Release preparation builds a validated dependency inventory and artifact-specific SPDX SBOMs. Reviewers reconcile scanner findings with Go modules, npm locks, Python metadata, Rust locks, embedded assets, generated data, and release contents.
+Read **[the detailed Codex portability assessment and plan](let-go/plan-port-codex-usage.md)** for source references, exact binding gaps, runtime ownership requirements, behavior choices, core-versus-fork boundaries, and verification requirements. Its sibling-repository links require the local workspace described there.
 
-See [docs/supply-chain.md](docs/supply-chain.md) for the inventory, SBOM, vulnerability, license, signing, and provenance requirements.
+## Design records
 
-## Project policies
+- [Original let-go integration plan](let-go/plan.md)
+- [Kmet compatibility plan update](let-go/plan-update-1-kmet-compat.md)
+- [Codex usage portability assessment](let-go/plan-port-codex-usage.md)
 
-- Read [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) before proposing a change.
-- Read [.github/SECURITY.md](.github/SECURITY.md) before reporting a vulnerability.
-- Read [.github/SUPPORT.md](.github/SUPPORT.md) before requesting support.
-- Read [docs/project/GOVERNANCE.md](docs/project/GOVERNANCE.md) and [docs/project/MAINTAINERS.md](docs/project/MAINTAINERS.md) for project ownership.
-- Read [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for licensing and attribution.
+Plans record design intent, not implementation completion. Use the implementation contracts and cited tests above to assess current support. Generic host changes belong in separately reviewable patches; Codex endpoints, polling policy, and presentation stay in the external extension.
 
-## Acknowledgements
+## Attribution and licensing
 
-PiG would not exist without Pi and the work of its maintainers and contributors. Their design and open-source work provide the reference that PiG follows.
-
-Thank you to everyone who contributes to Pi and PiG. Maintainers are listed in [`docs/project/MAINTAINERS.md`](docs/project/MAINTAINERS.md), every contributor appears on [GitHub's contributors page](https://github.com/MichaelKinsy/PiG/graphs/contributors), and the [changelog](CHANGELOG.md) credits each fix to the person who reported or contributed it.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/chart?repos=MichaelKinsy/PiG&type=timeline&legend=top-left)](https://www.star-history.com/?repos=MichaelKinsy%2FPiG&type=timeline&legend=top-left)
+The fork retains PiG's legal notices. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Codex assessment links the original extension and its MIT license. Preserve those notices when adapting its code.
