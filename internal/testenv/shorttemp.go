@@ -14,10 +14,10 @@ const maxShortTempDirBytes = 70
 
 // ShortTempDir creates a directory for the test whose path leaves room for
 // Unix-domain socket names below it: sun_path holds 104 bytes on macOS and 108
-// on Linux and Windows, and t.TempDir's name holds the test's name. It is in
-// /tmp outside Windows, since macOS's TMPDIR is long. On Windows it is in
-// os.TempDir, or in %LOCALAPPDATA%\pig\s, the directory the extension Host
-// falls back to, when os.TempDir is too long to leave that room. Its name
+// on Linux and Windows, and t.TempDir's name holds the test's name. It uses
+// os.TempDir when its path leaves room for socket names. On Unix a long path
+// falls back to /tmp; on Windows it falls back to %LOCALAPPDATA%\pig\s,
+// the directory the extension Host uses. Its name
 // starts with prefix. Cleanup removes it. On Windows the removal retries for
 // two seconds while another process still holds a file, as t.TempDir's cleanup
 // does.
@@ -50,11 +50,19 @@ func ShortTempDir(t testing.TB, prefix string) string {
 
 // shortTempBase returns the directory ShortTempDir creates its directory in.
 func shortTempBase(goos, tempDir, localAppData, prefix string) string {
+	const uint32Digits = 10
+	budget := maxShortTempDirBytes
+	if goos == "darwin" {
+		// macOS sun_path holds four fewer bytes than Linux and Windows.
+		budget -= 4
+	}
+	if len(filepath.Join(tempDir, prefix))+uint32Digits <= budget {
+		return tempDir
+	}
 	if goos != "windows" {
 		return "/tmp"
 	}
-	const uint32Digits = 10
-	if len(filepath.Join(tempDir, prefix))+uint32Digits <= maxShortTempDirBytes || localAppData == "" {
+	if localAppData == "" {
 		return tempDir
 	}
 	return filepath.Join(localAppData, "pig", "s")
