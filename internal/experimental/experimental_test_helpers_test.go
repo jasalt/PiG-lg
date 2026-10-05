@@ -82,7 +82,10 @@ func isolateExperimentalTest(t *testing.T) string {
 			}
 		}
 	}
-	// Upstream remote-runtime fixtures use /tmp explicitly. Named testing directories exceed sun_path once backend UUID filenames are appended, on Windows too: the extension host's sockets live under the TMP set below.
+	// Keep the shared home on disk-backed Unix storage while leaving room for the longest server socket name below root/tmp; named testing directories exceed sun_path. Windows uses the extension Host's short-directory fallback.
+	if runtime.GOOS != "windows" {
+		t.Setenv("TMPDIR", "/var/tmp")
+	}
 	root := testenv.ShortTempDir(t, "pe")
 	agentDir := filepath.Join(root, "agent")
 	for _, directory := range []string{agentDir, filepath.Join(root, "pig"), filepath.Join(root, "config"), filepath.Join(root, "cache"), filepath.Join(root, "data"), filepath.Join(root, "state"), filepath.Join(root, "run"), filepath.Join(root, "tmp"), filepath.Join(root, "appdata"), filepath.Join(root, "localappdata")} {
