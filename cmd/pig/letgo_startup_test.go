@@ -239,7 +239,7 @@ func TestLetGoStartupRPCListsAndDispatchesTheCommand(t *testing.T) {
 	})
 	p.send(`{"id":"run","type":"prompt","message":"/greet Ada"}`)
 	p.await("the command runs", func(record rpcRecord) bool { return isSuccessResponse(record, "run") })
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testbudget.Wait(t))
 	for !fileExists(marker) && time.Now().Before(deadline) {
 		time.Sleep(20 * time.Millisecond)
 	}
@@ -325,7 +325,7 @@ func rpcCommandNames(t *testing.T, p *rpcProcess, id string) []string {
 
 func waitForFile(t *testing.T, path, want string) {
 	t.Helper()
-	deadline := time.Now().Add(15 * time.Second)
+	deadline := time.Now().Add(testbudget.Wait(t))
 	for time.Now().Before(deadline) {
 		if got, err := os.ReadFile(path); err == nil && string(got) == want {
 			return
