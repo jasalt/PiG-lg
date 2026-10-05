@@ -155,6 +155,11 @@ func TestBuildModelDoesNotAliasGeneratedFallbackMetadata(t *testing.T) {
 // Mirrors upstream getDefaultAttributionHeaders' telemetry gate
 // (provider-attribution.ts:40); pig divergence (D26) covers the branding.
 func TestBuildModelGatesAttributionHeadersOnInstallTelemetrySetting(t *testing.T) {
+	// telemetry.ts:isInstallTelemetryEnabled gives PI_TELEMETRY precedence over settings. This case exercises settings alone; Setenv retains the inherited value for cleanup before Unsetenv removes the override.
+	t.Setenv("PI_TELEMETRY", "")
+	if err := os.Unsetenv("PI_TELEMETRY"); err != nil {
+		t.Fatal(err)
+	}
 	var gotHeader http.Header
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		gotHeader = request.Header.Clone()
