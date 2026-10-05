@@ -108,7 +108,7 @@ The assessment compares an existing Kmet implementation with an existing PiG Go 
 
 The Go factory already separates its host adapter, domain logic, HTTP transport, and lifetime owner. It is a behavioral reference for PiG, not an instruction to translate goroutines directly into interpreted callbacks. The Kmet and Go versions also differ in originator headers, output, credential redaction, and some formatting rules.
 
-Read **[the detailed Codex portability assessment and plan](let-go/plan-port-codex-usage.md)** for source references, exact binding gaps, runtime ownership requirements, behavior choices, core-versus-fork boundaries, and verification requirements. Its sibling-repository links require the local workspace described there.
+Read **[the detailed Codex portability assessment and plan](let-go/plan-port-codex-usage.md)** for source references, exact binding gaps, runtime ownership requirements, behavior choices, core-versus-fork boundaries, and verification requirements. Its source references use commit-pinned GitHub links to the Kmet and PiG extension repositories.
 
 ## Design records
 

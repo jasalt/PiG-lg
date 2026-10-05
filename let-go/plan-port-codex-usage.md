@@ -4,7 +4,7 @@
 
 This document records a source-based architecture assessment. It does not approve an expansion of PiG's let-go API or claim a working port. Tracking issue: `PiG-p1f`.
 
-Port the Kmet extension at [`../../kmet-extensions/codex-usage/`](../../kmet-extensions/codex-usage/) into `../../pig-lg-extensions/codex-usage/` as `.cljc` source. Use the existing [PiG Go extension](../../pig-extensions/extensions/codex-usage/) as the PiG behavior and lifecycle reference. Use Kmet as the source-portability reference. The two implementations are not behaviorally identical.
+Port the [Kmet extension](https://github.com/jasalt/kmet-extensions/tree/ab36bf230cbec7119177bba717e511dd9b4c0ccc/codex-usage) into `../../pig-lg-extensions/codex-usage/` as `.cljc` source. Use the existing [PiG Go extension](https://github.com/jasalt/pig-extensions/tree/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage) as the PiG behavior and lifecycle reference. Use Kmet as the source-portability reference. The two implementations are not behaviorally identical.
 
 No extension files or host changes have been made for this port. No build, test suite, live account request, or reset redemption was run during the assessment. Existing test claims below belong to the referenced projects and have not been independently revalidated.
 
@@ -12,13 +12,13 @@ No extension files or host changes have been made for this port. No build, test 
 
 ### Kmet
 
-The [Kmet implementation](../../kmet-extensions/codex-usage/src/codex_usage/core.clj) combines domain logic, host integration, transport, presentation, and polling in one namespace.
+The [Kmet implementation](https://github.com/jasalt/kmet-extensions/blob/ab36bf230cbec7119177bba717e511dd9b4c0ccc/codex-usage/src/codex_usage/core.clj) combines domain logic, host integration, transport, presentation, and polling in one namespace.
 
 It depends on `kmet.extension`, `kmet.libs.http`, `kmet.libs.json`, `kmet.libs.crypto`, `kmet.libs.concurrent`, `kmet.tui.theme`, `clojure.core.async`, and JVM date APIs. These dependencies are not portable merely because the entry file changes to `.cljc`.
 
 It resolves the selected model's authentication through `get-api-key-and-headers`. It does not read credentials directly from disk. It refreshes at session start, model selection, agent settlement, and every five minutes. Generation checks suppress stale responses. Shutdown invalidates work and closes the polling stop channel.
 
-See the [Kmet README](../../kmet-extensions/codex-usage/README.md), [tests](../../kmet-extensions/codex-usage/test/codex_usage/core_test.clj), and [host smoke script](../../kmet-extensions/codex-usage/scripts/smoke.bb).
+See the [Kmet README](https://github.com/jasalt/kmet-extensions/blob/ab36bf230cbec7119177bba717e511dd9b4c0ccc/codex-usage/README.md), [tests](https://github.com/jasalt/kmet-extensions/blob/ab36bf230cbec7119177bba717e511dd9b4c0ccc/codex-usage/test/codex_usage/core_test.clj), and [host smoke script](https://github.com/jasalt/kmet-extensions/blob/ab36bf230cbec7119177bba717e511dd9b4c0ccc/codex-usage/scripts/smoke.bb).
 
 ### PiG Go factory
 
@@ -26,16 +26,16 @@ The Go implementation already separates the proposed architectural layers:
 
 | Layer | Source | Responsibility |
 | --- | --- | --- |
-| Domain and presentation | [`core.go`](../../pig-extensions/extensions/codex-usage/core.go) | Window validation, percentages, cards, credits, date formatting, and reset-result interpretation |
-| Host adapter | [`extension.go`](../../pig-extensions/extensions/codex-usage/extension.go) | SDK context adaptation, command registration, lifecycle events, status, and notifications |
-| Transport | [`http.go`](../../pig-extensions/extensions/codex-usage/http.go) | Connection resolution, JWT decoding, HTTP, redirect policy, redaction, and redemption IDs |
-| Lifetime ownership | [`owner.go`](../../pig-extensions/extensions/codex-usage/owner.go) | Polling, cancellation, model/session epochs, refresh generations, publication guards, and shutdown |
+| Domain and presentation | [`core.go`](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/core.go) | Window validation, percentages, cards, credits, date formatting, and reset-result interpretation |
+| Host adapter | [`extension.go`](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/extension.go) | SDK context adaptation, command registration, lifecycle events, status, and notifications |
+| Transport | [`http.go`](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/http.go) | Connection resolution, JWT decoding, HTTP, redirect policy, redaction, and redemption IDs |
+| Lifetime ownership | [`owner.go`](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/owner.go) | Polling, cancellation, model/session epochs, refresh generations, publication guards, and shutdown |
 
 `handlerView` adapts SDK context operations into a small `view` of functions. The owner receives connection resolution, session/model identity, cancellation, status, and notification functions instead of the entire SDK.
 
 This is a Go SDK factory, normally hosted in a subprocess. It is not evidence that the extension runs in-process merely because its implementation language is Go. PiG let-go executes in-process under a serialized interpreter coordinator.
 
-See the [Go README](../../pig-extensions/extensions/codex-usage/README.md) for its qualification scope and commands. It explicitly excludes interactive reload and packed-placement qualification from its local completion claims.
+See the [Go README](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/README.md) for its qualification scope and commands. It explicitly excludes interactive reload and packed-placement qualification from its local completion claims.
 
 ## Proposed source structure
 
@@ -141,10 +141,10 @@ Use host-specific tests for resolved OAuth and adapter authentication, configure
 
 Compare new let-go bindings with the native reference through the [extension conformance suite](../test/extension-conformance/letgo_conformance_test.go). Add real CLI startup and reload evidence; registration-only validation does not prove runtime behavior. Measure latency, allocations, backpressure, and retained resources for the asynchronous path.
 
-Existing Go evidence sources include [core tests](../../pig-extensions/extensions/codex-usage/core_test.go), [HTTP tests](../../pig-extensions/extensions/codex-usage/http_test.go), [owner tests](../../pig-extensions/extensions/codex-usage/owner_test.go), [metadata race tests](../../pig-extensions/extensions/codex-usage/metadata_race_test.go), and [reset type tests](../../pig-extensions/extensions/codex-usage/reset_types_test.go). Their existence is not a claim that they passed in this assessment.
+Existing Go evidence sources include [core tests](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/core_test.go), [HTTP tests](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/http_test.go), [owner tests](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/owner_test.go), [metadata race tests](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/metadata_race_test.go), and [reset type tests](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/reset_types_test.go). Their existence is not a claim that they passed in this assessment.
 
 ## Provenance
 
-Both extensions identify the original Pi extension as [`contrib/pi-codex-usage.ts` at commit `94f45568b4bd7842b1aef362cc3ba883b1312951`](https://github.com/jasalt/chatgpt-openai-api-adapter/blob/94f45568b4bd7842b1aef362cc3ba883b1312951/contrib/pi-codex-usage.ts). Preserve the original attribution and [MIT license](../../pig-extensions/extensions/codex-usage/LICENSE) when adapting code.
+Both extensions identify the original Pi extension as [`contrib/pi-codex-usage.ts` at commit `94f45568b4bd7842b1aef362cc3ba883b1312951`](https://github.com/jasalt/chatgpt-openai-api-adapter/blob/94f45568b4bd7842b1aef362cc3ba883b1312951/contrib/pi-codex-usage.ts). Preserve the original attribution and [MIT license](https://github.com/jasalt/pig-extensions/blob/a62386badad7b9550ad99dda237e2104e3c56edb/extensions/codex-usage/LICENSE) when adapting code.
 
-Sibling-repository links refer to the local workspace layout, not immutable snapshots. Capture the exact source revisions or file hashes when implementation begins so later comparisons have reproducible provenance.
+Source references use public GitHub permalinks pinned to Kmet commit `ab36bf230cbec7119177bba717e511dd9b4c0ccc` and PiG extension commit `a62386badad7b9550ad99dda237e2104e3c56edb`. All 15 referenced files were retrieved from those commits and matched the assessed local files byte-for-byte. The local PiG extension checkout had a different commit ID; the public snapshot preserves the referenced content. The proposed output directory remains a local workspace path.
