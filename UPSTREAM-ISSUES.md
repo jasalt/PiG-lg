@@ -173,3 +173,37 @@ The count rises on every round and never falls. Each entry is keyed by the parse
 **Source evidence:** `vm/source.go` declares `FormSource` as a process-wide map with `Set`, `Get`, `Len` and `Reset`, and nothing removes an entry. The compiler reads it only while compiling.
 
 **PiG disposition:** `releaseFormSources` in `coding/extension/host/letgo/host.go` calls `Reset` at the end of every serialized VM entry, when no compile is reading the table. Runtime errors take their locations from each chunk's own source map, not from this table. `TestLifetimeRepeatedGenerationsLeaveNoOwnedState` and `TestLifetimeHeapDoesNotGrowWithGenerations` fail when the call is disabled and pass with it. No dependency patch is used.
+
+## LG-5: the native runtime does not compile for Windows
+
+**Upstream:** [nooga/let-go](https://github.com/nooga/let-go), `v1.12.2`, commit `9c9a3d636c4eda8b1da3d08612aeb56b3795cc1e`.
+
+**Status:** Reproduced dependency build failure with Go 1.27.1 on Linux/amd64. No upstream issue has been filed. Windows support is a dependency contract to confirm, not an assumed upstream promise.
+
+Run these compile-only probes from the pinned PiG module. They do not import PiG's adapter or run a Windows executable:
+
+```bash
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build github.com/nooga/let-go/pkg/rt
+GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build github.com/nooga/let-go/pkg/rt
+```
+
+Both fail in `pkg/rt/term.go`, beginning with:
+
+```text
+undefined: unix.SIGWINCH
+undefined: unix.PollFd
+undefined: unix.POLLIN
+undefined: unix.Poll
+```
+
+Controls on the same dependency pin and Go toolchain pass:
+
+```bash
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build github.com/nooga/let-go/pkg/rt
+GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build github.com/nooga/let-go/pkg/rt
+```
+
+**Source evidence:** `pkg/rt/term.go` has the build constraint `!js && !plan9 && !wasip1`, which includes Windows. Its `setupWinch`, `nativeKeySource.readRaw` and `nativeKeySource.rawPending` implementations require Unix signals, polling and ioctls. Importing the runtime compiles these operations even when an embedder never calls a terminal primitive.
+
+**PiG disposition:** The Windows branches of `make vet` and therefore `make check` and `make verify` fail on this dependency. PiG does not skip the branches or silently remove the interpreted runtime on Windows. `PiG-18s.42` tracks the unresolved dependency strategy and remains a prerequisite of the v1 regression gate. A native let-go test pass does not close this platform failure.
+
